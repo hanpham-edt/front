@@ -1,32 +1,50 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { ShoppingCart, Menu, X, Search, User } from 'lucide-react';
+import { useState } from "react";
+import Link from "next/link";
+import { ShoppingCart, Menu, X, User } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useRouter } from "next/navigation";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [cartCount] = useState(0);
+  //const { totalItems } = useCart();
+  const { isAuthenticated, isLoading, logout } = useAuth();
+  const router = useRouter();
 
   const navigation = [
-    { name: 'Trang Chủ', href: '/' },
-    { name: 'Sản Phẩm', href: '/products' },
-    { name: 'Về Chúng Tôi', href: '/about' },
-    { name: 'Liên Hệ', href: '/contact' },
-    { name: 'Tin Tức', href: '/news'},
+    { name: "Trang Chủ", href: "/" },
+    { name: "Yến sào", href: "/products" },
+    { name: "About", href: "/about" },
+    { name: "Liên Hệ", href: "/contact" },
+    { name: "Tin Tức", href: "/news" },
   ];
+
+  const handleLogoutClick = async () => {
+    await logout();
+  };
+  const handleLoginClick = () => {
+    router.push("/auth/login");
+  };
+
+  const handleRegisterClick = () => {
+    router.push("/auth/register");
+  };
 
   return (
     <header className="bg-white shadow-lg sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-         <div className="flex-shrink-0">
+          <div className="flex-shrink-0">
             <Link href="/" className="flex items-center">
               <div className="w-10 h-10 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
                 <span className="text-white font-bold text-lg">A</span>
               </div>
-              <span className="ml-2 text-xl font-bold text-gray-900">Yến Sào A Phú Hãn</span>
+              <span className="ml-2 text-xl font-bold text-gray-900">
+                Yến Sào A Phú Hãn
+              </span>
             </Link>
           </div>
 
@@ -44,7 +62,7 @@ export default function Header() {
           </nav>
 
           {/* Search Bar */}
-          <div className="hidden md:flex flex-1 max-w-md mx-8">
+          {/* <div className="hidden md:flex flex-1 max-w-md mx-8">
             <div className="relative w-full">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="h-5 w-5 text-gray-400" />
@@ -55,15 +73,18 @@ export default function Header() {
                 placeholder="Tìm kiếm sản phẩm..."
               />
             </div>
-          </div>
+          </div> */}
 
           {/* Right side icons */}
           <div className="flex items-center space-x-4">
             <button className="p-2 text-gray-700 hover:text-orange-500 transition-colors">
-              <User className="h-6 w-6" />
+              {isAuthenticated ? <User className="h-6 w-6" /> : ""}
             </button>
-            
-            <Link href="/cart" className="relative p-2 text-gray-700 hover:text-orange-500 transition-colors">
+
+            <Link
+              href="/cart"
+              className="relative p-2 text-gray-700 hover:text-orange-500 transition-colors"
+            >
               <ShoppingCart className="h-6 w-6" />
               {cartCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
@@ -72,12 +93,30 @@ export default function Header() {
               )}
             </Link>
 
+            {/* Login - Logout */}
+            {isAuthenticated ? (
+              <>
+                <button onClick={handleLogoutClick} disabled={isLoading} className="cursor-pointer bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600" >
+                  {isLoading ? "Logging out..." : "Logout"}
+                </button>
+              </>
+            ) : (
+              <>
+                <button onClick={handleLoginClick} className="cursor-pointer bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600" > Login </button>
+                <button onClick={handleRegisterClick} className="cursor-pointer bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600" > Register </button>
+              </>
+            )}
+
             {/* Mobile menu button */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="md:hidden p-2 text-gray-700 hover:text-orange-500 transition-colors"
             >
-              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              {isMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
             </button>
           </div>
         </div>
@@ -96,7 +135,7 @@ export default function Header() {
                   {item.name}
                 </Link>
               ))}
-              <div className="px-3 py-2">
+              {/* <div className="px-3 py-2">
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Search className="h-5 w-5 text-gray-400" />
@@ -107,11 +146,11 @@ export default function Header() {
                     placeholder="Tìm kiếm sản phẩm..."
                   />
                 </div>
-              </div>
+              </div> */}
             </div>
           </div>
         )}
       </div>
     </header>
   );
-} 
+}

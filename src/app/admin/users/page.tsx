@@ -1,47 +1,9 @@
 "use client";
-
-import { useState, useEffect } from "react";
-import {
-  Search,
-  Filter,
-  Eye,
-  Edit,
-  Trash2,
-  Plus,
-  User,
-  XCircle,
-} from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Search, Eye, Edit, Trash2, Plus, User, XCircle } from "lucide-react";
 import Link from "next/link";
-
-// Define interfaces for type safety
-type User = {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  role: string | null;
-  //avatar_url: string | null;
-  created_at: string;
-  status: string;
-  //updated_at: string | null;
-};
-
-// Mock users data
-// const users: User[] = [
-//   {
-//     id: "1",
-//     name: "Nguyễn Thị Anh",
-//     email: "anh.nguyen@email.com",
-//     phone: "0123456789",
-//     role: "customer",
-//     status: "active",
-//     createdAt: "2024-01-01",
-//     lastLogin: "2024-01-15",
-//     totalOrders: 5,
-//     totalSpent: 12500000,
-//   },
-//   {
+import { useUsers } from "@/hooks/useUsers";
+import { Users } from "@/types/user-types";
 
 const roleOptions = [
   { value: "all", label: "Tất cả" },
@@ -56,49 +18,38 @@ const statusOptions = [
 ];
 
 export default function AdminUsersPage() {
-  const [searchTerm, setSearchTerm] = useState("");
   const [selectedRole, setSelectedRole] = useState("all");
-  const [selectedStatus, setSelectedStatus] = useState("all");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
   const [showUserModal, setShowUserModal] = useState(false);
-  const [users, setUsers] = useState<User[]>([]);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const fetchUsers = async (q = "") => {
-    ///setLoading(true);
-    try {
-      const res = await fetch(`/api/users?q=${q}`);
-      const data = await res.json();
-      setUsers(data);
-    } catch (e) {
-      // setError("Không thể tải dữ liệu người dùng");
-    } finally {
-      //setLoading(false);
-    }
-  };
+  const { users, getUsers } = useUsers();
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [status, setStatus] = useState<"all" | "active" | "inactive">("all");
+  const [selectedUser, setSelectedUser] = useState<Users | null>(null);
+  const limit = 12;
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    getUsers({
+      page,
+      limit,
+      search: debouncedSearch,
+      isActive: status === "all" ? undefined : status === "active",
+    });
+  }, [getUsers, page, limit, debouncedSearch, status]);
 
-  // Tìm kiếm real-time
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      fetchUsers(searchTerm);
-    }, 300);
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm]);
-
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch =
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.phone.includes(searchTerm);
-    const matchesRole = selectedRole === "all" || user.role === selectedRole;
-    const matchesStatus =
-      selectedStatus === "all" || user.status === selectedStatus;
-    return matchesSearch && matchesRole && matchesStatus;
-  });
+  const handleSearch = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
+      setSearch(value);
+      setPage(1);
+      setTimeout(() => {
+        setDebouncedSearch(value);
+      }, 500);
+    },
+    [setSearch, setPage],
+  );
 
   const handleDelete = (userId: string) => {
     setUserToDelete(userId);
@@ -108,30 +59,19 @@ export default function AdminUsersPage() {
   const confirmDelete = async () => {
     // In real app, this would call API to delete user
     //console.log("Deleting user:", userToDelete);
-    try {
-      await fetch(`/api/users/${userToDelete}`, { method: "DELETE" });
-      fetchUsers(searchTerm);
-    } catch (error) {
-      setError("Không thể xóa users nay");
-    }
-    setShowDeleteModal(false);
-    setUserToDelete(null);
+    // try {
+    //   await fetch(`/api/users/${userToDelete}`, { method: "DELETE" });
+    //   fetchUsers(searchTerm);
+    // } catch (error) {
+    //   setError("Không thể xóa users nay");
+    // }
+    // setShowDeleteModal(false);
+    // setUserToDelete(null);
   };
 
-  const handleViewUser = (user: User) => {
-    setSelectedUser(user);
+  const handleViewUser = (users: Users) => {
+    setSelectedUser(users);
     setShowUserModal(true);
-  };
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(price);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("vi-VN");
   };
 
   return (
@@ -147,7 +87,7 @@ export default function AdminUsersPage() {
             </p>
           </div>
           <Link href="/admin/users/new">
-            <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center">
+            <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center cursor-pointer">
               <Plus className="h-4 w-4 mr-2" />
               Thêm người dùng
             </button>
@@ -166,8 +106,8 @@ export default function AdminUsersPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={search}
+                onChange={handleSearch}
                 className="pl-10 w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 placeholder="Tìm kiếm người dùng..."
               />
@@ -196,8 +136,11 @@ export default function AdminUsersPage() {
               Trạng thái
             </label>
             <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value as typeof status);
+                setPage(1);
+              }}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
             >
               {statusOptions.map((option) => (
@@ -207,13 +150,6 @@ export default function AdminUsersPage() {
               ))}
             </select>
           </div>
-
-          <div className="flex items-end">
-            <button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center">
-              <Filter className="h-4 w-4 mr-2" />
-              Lọc
-            </button>
-          </div>
         </div>
       </div>
 
@@ -221,7 +157,7 @@ export default function AdminUsersPage() {
       <div className="bg-white shadow rounded-lg overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-medium text-gray-900">
-            Người dùng ({filteredUsers.length})
+            Người dùng {/* ({userData}) */}
           </h3>
         </div>
 
@@ -238,12 +174,13 @@ export default function AdminUsersPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Trạng thái
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Đơn hàng
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Tổng chi tiêu
                 </th>
+                */}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Ngày tham gia
                 </th>
@@ -253,7 +190,7 @@ export default function AdminUsersPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredUsers.map((user) => (
+              {users.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -262,13 +199,10 @@ export default function AdminUsersPage() {
                       </div>
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900">
-                          {user.name}
+                          {user.firstName}
                         </div>
                         <div className="text-sm text-gray-500">
                           {user.email}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {user.phone}
                         </div>
                       </div>
                     </div>
@@ -276,35 +210,35 @@ export default function AdminUsersPage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        user.role === "admin"
+                        user.role === "ADMIN"
                           ? "bg-purple-100 text-purple-800"
                           : "bg-blue-100 text-blue-800"
                       }`}
                     >
-                      {user.role === "admin" ? "Quản trị viên" : "Khách hàng"}
+                      {user.role === "ADMIN" ? "Quản trị viên" : "Khách hàng"}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        user.status === "active"
+                        user.isActive
                           ? "bg-green-100 text-green-800"
                           : "bg-red-100 text-red-800"
                       }`}
                     >
-                      {user.status === "active"
-                        ? "Hoạt động"
-                        : "Không hoạt động"}
+                      {user.isActive ? "Hoạt động" : "Không hoạt động"}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {/* // {user.totalOrders} */}
+                  {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {/* {formatPrice(user.totalSpent)} */}
-                  </td>
+                   
+                  </td> */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(user.created_at)}
+                    {user.createdAt
+                      ? new Date(user.createdAt).toLocaleString("vi-VN")
+                      : ""}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">
@@ -357,19 +291,19 @@ export default function AdminUsersPage() {
                 </div>
                 <div>
                   <h4 className="text-lg font-medium text-gray-900">
-                    {selectedUser.name}
+                    {selectedUser.firstName}
                   </h4>
                   <p className="text-gray-500">{selectedUser.email}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+                {/* <div>
                   <label className="block text-sm font-medium text-gray-700">
                     Số điện thoại
                   </label>
                   <p className="text-sm text-gray-900">{selectedUser.phone}</p>
-                </div>
+                </div> */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
                     Vai trò
@@ -385,9 +319,7 @@ export default function AdminUsersPage() {
                     Trạng thái
                   </label>
                   <p className="text-sm text-gray-900">
-                    {selectedUser.status === "active"
-                      ? "Hoạt động"
-                      : "Không hoạt động"}
+                    {selectedUser.isActive ? "Hoạt động" : "Không hoạt động"}
                   </p>
                 </div>
                 <div>
@@ -395,18 +327,20 @@ export default function AdminUsersPage() {
                     Ngày tham gia
                   </label>
                   <p className="text-sm text-gray-900">
-                    {formatDate(selectedUser.created_at)}
+                    {selectedUser.createdAt
+                      ? new Date(selectedUser.createdAt).toLocaleString("vi-VN")
+                      : ""}
                   </p>
                 </div>
-                <div>
+                {/* <div>
                   <label className="block text-sm font-medium text-gray-700">
                     Đăng nhập cuối
                   </label>
                   <p className="text-sm text-gray-900">
                     {formatDate(selectedUser.lastLogin)}
                   </p>
-                </div>
-                <div>
+                </div> */}
+                {/* <div>
                   <label className="block text-sm font-medium text-gray-700">
                     Tổng đơn hàng
                   </label>
@@ -421,7 +355,7 @@ export default function AdminUsersPage() {
                   <p className="text-lg font-medium text-gray-900">
                     {formatPrice(selectedUser.totalSpent)}
                   </p>
-                </div>
+                </div> */}
               </div>
             </div>
           </div>

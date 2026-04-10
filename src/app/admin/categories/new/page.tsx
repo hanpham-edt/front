@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Save, Tags } from "lucide-react";
 import Link from "next/link";
+import { CategoryService } from "@/services/api/CategoryService";
 
 export default function NewCategoryPage() {
   const router = useRouter();
@@ -19,7 +20,7 @@ export default function NewCategoryPage() {
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    >,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -56,51 +57,12 @@ export default function NewCategoryPage() {
 
     setIsSubmitting(true);
 
-    // In real app, this would call API to create user
-    console.log("Creating category:", formData);
-
-    // Simulate API call
-    //await new Promise((resolve) => setTimeout(resolve, 1000));
-    await fetch("/api/categories", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
-    });
+    await CategoryService.createCategory(formData);
+   
 
     setIsSubmitting(false);
     router.push("/admin/categories");
   };
-
-  // Xử lý submit form
-  // const handleSubmit = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   if (!form.name) return;
-
-  //   try {
-  //     const formData = {
-  //       ...form,
-  //       slug: form.slug || generateSlug(form.name)
-  //     };
-
-  //     if (formType === "add") {
-  //       await fetch("/api/categories", {
-  //         method: "POST",
-  //         headers: { "Content-Type": "application/json" },
-  //         body: JSON.stringify(formData),
-  //       });
-  //     } else if (formType === "edit" && form.id) {
-  //       await fetch(`/api/categories/${form.id}`, {
-  //         method: "PUT",
-  //         headers: { "Content-Type": "application/json" },
-  //         body: JSON.stringify(formData),
-  //       });
-  //     }
-  //     setShowForm(false);
-  //     fetchCategories(search);
-  //   } catch (error) {
-  //     setError("Không thể lưu danh mục");
-  //   }
-  // };
 
   return (
     <div>
@@ -201,8 +163,6 @@ export default function NewCategoryPage() {
                   />
                 </div>
               </div>
-
-              <div></div>
             </div>
           </div>
 
@@ -211,7 +171,7 @@ export default function NewCategoryPage() {
             <Link href="/admin/categories">
               <button
                 type="button"
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
               >
                 Hủy
               </button>
@@ -219,7 +179,7 @@ export default function NewCategoryPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors flex items-center disabled:opacity-50"
+              className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors flex items-center disabled:opacity-50 cursor-pointer"
             >
               <Save className="h-4 w-4 mr-2" />
               {isSubmitting ? "Đang lưu..." : "Lưu danh mục"}

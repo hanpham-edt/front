@@ -1,34 +1,44 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect} from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Save, X, Upload } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
+
+import { CreateProduct } from '@/types/product-types';
+import { ProductService } from '@/services/api/productService';
+import { useCategories } from '@/hooks/useCategory';
 
 export default function NewProductPage() {
   const router = useRouter();
-  const [formData, setFormData] = useState({
+  const { categories, getCategories } = useCategories();
+  const [imagePreview, setImagePreview] = useState<string[]>([]);
+  const [images, setImages] = useState<File[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState<CreateProduct>({
     name: '',
+    sku: '',
+    categoryId: '',
+    price: 0,
     description: '',
-    price: '',
-    originalPrice: '',
-    category: 'premium',
-    weight: '',
-    origin: '',
-    inStock: true,
-    featured: false,
-    benefits: [''],
+    stock: 0,
+    imageUrl: '',
+    isActive: true,
   });
 
-  const [images, setImages] = useState<File[]>([]);
-  const [imagePreview, setImagePreview] = useState<string[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const categories = [
-    { id: 'premium', name: 'Cao Cấp' },
-    { id: 'standard', name: 'Tiêu Chuẩn' },
-    { id: 'economy', name: 'Kinh Tế' },
-  ];
+  useEffect(() => {
+    void getCategories();
+   
+  }, [getCategories]);
+
+  // Nếu user không chọn danh mục, set mặc định theo danh mục đầu tiên load được
+  useEffect(() => {
+    if (!formData.categoryId && categories.length > 0) {
+      setFormData((prev) => ({ ...prev, categoryId: categories[0].id }));
+    }
+  }, [categories, formData.categoryId]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -38,37 +48,14 @@ export default function NewProductPage() {
     }));
   };
 
-  const handleBenefitChange = (index: number, value: string) => {
-    const newBenefits = [...formData.benefits];
-    newBenefits[index] = value;
-    setFormData(prev => ({
-      ...prev,
-      benefits: newBenefits
-    }));
-  };
-
-  const addBenefit = () => {
-    setFormData(prev => ({
-      ...prev,
-      benefits: [...prev.benefits, '']
-    }));
-  };
-
-  const removeBenefit = (index: number) => {
-    const newBenefits = formData.benefits.filter((_, i) => i !== index);
-    setFormData(prev => ({
-      ...prev,
-      benefits: newBenefits
-    }));
-  };
-
+ 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const validFiles = files.filter(file => 
       file.type.startsWith('image/') && file.size <= 5 * 1024 * 1024 // 5MB limit
     );
 
-    if (validFiles.length + images.length > 5) {
+    if (validFiles.length + images.length + imagePreview.length > 5) {
       alert('Tối đa 5 hình ảnh cho mỗi sản phẩm');
       return;
     }
@@ -79,29 +66,38 @@ export default function NewProductPage() {
     validFiles.forEach(file => {
       const reader = new FileReader();
       reader.onload = (e) => {
-        setImagePreview(prev => [...prev, e.target?.result as string]);
+        const result = e.target?.result as string | undefined;
+        if (!result) return;
+        setImagePreview(prev => [...prev, result]);
+        // Backend hiện chỉ nhận `imageUrl` (string). Tạm thời lấy ảnh đầu tiên làm imageUrl.
+        setFormData(prev => (prev.imageUrl ? prev : { ...prev, imageUrl: result }));
       };
       reader.readAsDataURL(file);
     });
   };
 
   const removeImage = (index: number) => {
+    setImagePreview(prev => {
+      const next = prev.filter((_, i) => i !== index);
+      setFormData(p => ({ ...p, imageUrl: next[0] ?? "" }));
+      return next;
+    });
     setImages(prev => prev.filter((_, i) => i !== index));
-    setImagePreview(prev => prev.filter((_, i) => i !== index));
   };
 
+
+// Create new product
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    setIsSubmitting(true)
 
-    // In real app, this would call API to create product
-    console.log('Creating product:', formData);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
+    await ProductService.createProduct( {
+      ...formData,
+      imageUrl: imagePreview[0] ?? formData.imageUrl ?? "",
+    });
     setIsSubmitting(false);
     router.push('/admin/products');
+  
   };
 
   return (
@@ -115,8 +111,8 @@ export default function NewProductPage() {
               </button>
             </Link>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Thêm sản phẩm mới</h1>
-              <p className="text-gray-600">Tạo sản phẩm yến sào mới</p>
+              <h1 className="text-2xl font-bold text-gray-900">Chỉnh sửa sản phẩm</h1>
+              <p className="text-gray-600">Cập nhật thông tin sản phẩm yến sào</p>
             </div>
           </div>
         </div>
@@ -145,17 +141,36 @@ export default function NewProductPage() {
               </div>
 
               <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                  Sku * 
+                </label>
+                <input
+                  type="text"
+                  id="sku"
+                  name="sku"
+                  value={formData.sku}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  placeholder="Nhập tên sản phẩm"
+                />
+              </div>
+
+              <div>
                 <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
                   Danh mục *
                 </label>
                 <select
                   id="category"
-                  name="category"
-                  value={formData.category}
+                  name="categoryId"
+                  value={formData.categoryId}
                   onChange={handleInputChange}
                   required
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 >
+                  <option value="" disabled>
+                    -- Chọn danh mục --
+                  </option>
                   {categories.map((category) => (
                     <option key={category.id} value={category.id}>
                       {category.name}
@@ -179,51 +194,19 @@ export default function NewProductPage() {
                   placeholder="Nhập giá bán"
                 />
               </div>
-
               <div>
-                <label htmlFor="originalPrice" className="block text-sm font-medium text-gray-700 mb-2">
-                  Giá gốc (VNĐ)
+                <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
+                  Stock
                 </label>
                 <input
                   type="number"
-                  id="originalPrice"
-                  name="originalPrice"
-                  value={formData.originalPrice}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                  placeholder="Nhập giá gốc (nếu có)"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="weight" className="block text-sm font-medium text-gray-700 mb-2">
-                  Trọng lượng *
-                </label>
-                <input
-                  type="text"
-                  id="weight"
-                  name="weight"
-                  value={formData.weight}
+                  id="stock"
+                  name="stock"
+                  value={formData.stock}
                   onChange={handleInputChange}
                   required
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                  placeholder="Ví dụ: 100g"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="origin" className="block text-sm font-medium text-gray-700 mb-2">
-                  Xuất xứ *
-                </label>
-                <input
-                  type="text"
-                  id="origin"
-                  name="origin"
-                  value={formData.origin}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                  placeholder="Ví dụ: Đảo Khánh Hòa"
+                  placeholder="Nhập tồn kho"
                 />
               </div>
             </div>
@@ -281,9 +264,11 @@ export default function NewProductPage() {
                     {imagePreview.map((preview, index) => (
                       <div key={index} className="relative group">
                         <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                          <img
+                          <Image
                             src={preview}
                             alt={`Preview ${index + 1}`}
+                            width={320}
+                            height={320}
                             className="w-full h-full object-cover"
                           />
                         </div>
@@ -305,41 +290,6 @@ export default function NewProductPage() {
             </div>
           </div>
 
-          {/* Benefits */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Lợi ích sản phẩm
-            </label>
-            <div className="space-y-2">
-              {formData.benefits.map((benefit, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <input
-                    type="text"
-                    value={benefit}
-                    onChange={(e) => handleBenefitChange(index, e.target.value)}
-                    className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                    placeholder="Nhập lợi ích sản phẩm"
-                  />
-                  {formData.benefits.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeBenefit(index)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={addBenefit}
-                className="text-orange-600 hover:text-orange-800 text-sm font-medium"
-              >
-                + Thêm lợi ích
-              </button>
-            </div>
-          </div>
 
           {/* Status */}
           <div>
@@ -348,27 +298,14 @@ export default function NewProductPage() {
               <div className="flex items-center">
                 <input
                   type="checkbox"
-                  id="inStock"
-                  name="inStock"
-                  checked={formData.inStock}
+                  id="isActive"
+                  name="isActive"
+                  checked={!!formData.isActive}
                   onChange={handleInputChange}
                   className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
                 />
-                <label htmlFor="inStock" className="ml-2 block text-sm text-gray-900">
-                  Còn hàng
-                </label>
-              </div>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="featured"
-                  name="featured"
-                  checked={formData.featured}
-                  onChange={handleInputChange}
-                  className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
-                />
-                <label htmlFor="featured" className="ml-2 block text-sm text-gray-900">
-                  Sản phẩm nổi bật
+                <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900">
+                  Đang bán
                 </label>
               </div>
             </div>
@@ -379,7 +316,7 @@ export default function NewProductPage() {
             <Link href="/admin/products">
               <button
                 type="button"
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
               >
                 Hủy
               </button>
@@ -387,7 +324,7 @@ export default function NewProductPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors flex items-center disabled:opacity-50"
+              className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors flex items-center disabled:opacity-50 cursor-pointer"
             >
               <Save className="h-4 w-4 mr-2" />
               {isSubmitting ? 'Đang lưu...' : 'Lưu sản phẩm'}

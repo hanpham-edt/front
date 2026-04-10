@@ -44,12 +44,6 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const data = await req.json();
-  // if (!data.email || !data.password || !data.name) {
-  //   return NextResponse.json(
-  //     { error: "Thiếu trường bắt buộc" },
-  //     { status: 400 }
-  //   );
-  // }
 
   try {
     // Mã hóa password

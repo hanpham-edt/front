@@ -1,58 +1,45 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Search, Eye, Edit, Trash2, Plus, XCircle } from "lucide-react";
 import Link from "next/link";
-// Define interfaces for type safety
-type Category = {
-  id: string;
-  name: string;
-  slug: string;
-  description: string;
-};
+import { Category } from "@/types/category-types";
+import { useCategories } from "@/hooks/useCategory";
+import { CategoryService } from "@/services/api/CategoryService";
 
-const emptyCategory: Partial<Category> = {
-  name: "",
-  slug: "",
-  description: "",
-};
 export default function AdminCategoryPage() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  //const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [status, setStatus] = useState<"all" | "active" | "inactive">("all");
+  const { categories, getCategories } = useCategories();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
-  // const [form, setForm] = useState<Partial<Category>>(emptyCategory);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
-    null
+    null,
   );
-
-  // Lấy danh sách danh mục tu API
-  const fetchCategories = async (q = "") => {
-    //setLoading(true);
-    try {
-      const res = await fetch(`/api/categories?q=${encodeURIComponent(q)}`);
-      const data = await res.json();
-      setCategories(data);
-    } catch (e) {
-      setError("Không thể tải dữ liệu danh mục");
-    } finally {
-      //setLoading(false);
-    }
-  };
+  const limit = 12;
 
   useEffect(() => {
-    fetchCategories();
-  }, []);
+    getCategories({
+      page,
+      limit,
+      search: debouncedSearch,
+      isActive: status === "all" ? undefined : status === "active",
+    });
+  }, [getCategories, page, limit, debouncedSearch, status]);
 
-  // Tìm kiếm real-time
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      fetchCategories(searchTerm);
-    }, 300);
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm]);
+  const handleSearch = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
+      setSearch(value);
+      setPage(1);
+      setTimeout(() => {
+        setDebouncedSearch(value);
+      }, 500);
+    },
+    [setSearch, setPage],
+  );
 
   const handleDelete = (categoryId: string) => {
     setCategoryToDelete(categoryId);
@@ -60,15 +47,9 @@ export default function AdminCategoryPage() {
   };
 
   const confirmDelete = async () => {
-    // In real app, this would call API to delete category
-
-    try {
-      await fetch(`/api/categories/${categoryToDelete}`, { method: "DELETE" });
-      fetchCategories(searchTerm);
-    } catch (error) {
-      setError("Không thể xóa danh mục");
-    }
-
+    if (!categoryToDelete) return;
+    console.log("Deleting category:", categoryToDelete);
+    await CategoryService.deleteCategory(categoryToDelete);
     setShowDeleteModal(false);
     setCategoryToDelete(null);
   };
@@ -89,7 +70,7 @@ export default function AdminCategoryPage() {
             <p className="text-gray-600">Quản lý tất cả danh mục</p>
           </div>
           <Link href="/admin/categories/new">
-            <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center">
+            <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center cursor-pointer">
               <Plus className="h-4 w-4 mr-2" />
               Thêm danh mục mới
             </button>
@@ -108,12 +89,29 @@ export default function AdminCategoryPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={search}
+                onChange={handleSearch}
                 className="pl-10 w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 placeholder="Tìm kiếm danh mục..."
               />
             </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Trạng thái
+            </label>
+            <select
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value as typeof status);
+                setPage(1);
+              }}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            >
+              <option value="all">Tất cả</option>
+              <option value="active">Hoạt động</option>
+              <option value="inactive">Tạm tắt</option>
+            </select>
           </div>
         </div>
       </div>
@@ -140,6 +138,12 @@ export default function AdminCategoryPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Mô tả
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Trạng thái
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Ngày tạo
+                </th>
 
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Thao tác
@@ -159,7 +163,14 @@ export default function AdminCategoryPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {category.description}
                   </td>
-
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {category.isActive ? "Hoạt động" : "Tạm tắt"}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {category.createdAt
+                      ? new Date(category.createdAt).toLocaleString("vi-VN")
+                      : ""}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">
                       <button
@@ -246,13 +257,13 @@ export default function AdminCategoryPage() {
               <div className="flex items-center justify-center space-x-4 mt-4">
                 <button
                   onClick={() => setShowDeleteModal(false)}
-                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
+                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors cursor-pointer"
                 >
                   Hủy
                 </button>
                 <button
                   onClick={confirmDelete}
-                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors cursor-pointer"
                 >
                   Xóa
                 </button>

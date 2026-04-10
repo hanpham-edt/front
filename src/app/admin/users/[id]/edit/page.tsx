@@ -46,7 +46,7 @@ export default function NewUserPage() {
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    >,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -359,7 +359,7 @@ export default function NewUserPage() {
             <Link href="/admin/users">
               <button
                 type="button"
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
               >
                 Hủy
               </button>
@@ -367,7 +367,7 @@ export default function NewUserPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors flex items-center disabled:opacity-50"
+              className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors flex items-center disabled:opacity-50 cursor-pointer"
             >
               <Save className="h-4 w-4 mr-2" />
               {isSubmitting ? "Đang lưu..." : "Lưu người dùng"}

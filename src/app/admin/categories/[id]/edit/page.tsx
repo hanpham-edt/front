@@ -1,45 +1,57 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft, Save, Tags } from "lucide-react";
 import Link from "next/link";
+import { CreateCategory } from "@/types/category-types";
+import { CategoryService } from "@/services/api/CategoryService";
 
-type Category = {
-  id: string;
-  name: string;
-  slug: string;
-  description: string;
-};
-const emptyCategory: Partial<Category> = {
-  name: "",
-  slug: "",
-  description: "",
-};
-export default function NewCategoryPage() {
-  const [formData, setFormData] = useState<Partial<Category>>(emptyCategory);
+export default function EditCategoryPage() {
+  const [formData, setFormData] = useState<CreateCategory>({
+    name: "",
+    slug: "",
+    description: "",
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const router = useRouter();
   const params = useParams();
-  const { id } = params;
+  const idParam = params.id;
+  const categoryId =
+    typeof idParam === "string"
+      ? idParam
+      : Array.isArray(idParam)
+        ? idParam[0]
+        : undefined;
 
-  const fetchCategories = async () => {
-    const res = await fetch(`/api/categories/${id}`, { method: "GET" });
-    const data = await res.json();
-    setFormData(data);
-  };
+  const loadCategory = useCallback(async () => {
+    if (!categoryId) return;
+    const res = await CategoryService.getCategoryById(categoryId);
+    // Keep only form fields; do not spread API extras (productCount, timestamps, …)
+    setFormData({
+      name: res.name,
+      slug: res.slug ?? "",
+      description: res.description ?? "",
+      imageUrl: res.imageUrl ?? undefined,
+      isActive: res.isActive,
+    });
+  }, [categoryId]);
 
   useEffect(() => {
-    fetchCategories();
-  }, []);
+    void loadCategory();
+  }, [loadCategory]);
 
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    >,
   ) => {
-    const { name, value } = e.target;
+    const { name } = e.target;
+    const value =
+      e.target instanceof HTMLInputElement && e.target.type === "checkbox"
+        ? e.target.checked
+        : e.target.value;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -55,11 +67,9 @@ export default function NewCategoryPage() {
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
-
     if (!formData.name.trim()) {
       newErrors.name = "Tên không được để trống";
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -70,20 +80,12 @@ export default function NewCategoryPage() {
     if (!validateForm()) {
       return;
     }
-
     setIsSubmitting(true);
-
-    // In real app, this would call API to create category
-    // console.log("Creating category:", formData);
-
-    // Simulate API call
-    //await new Promise((resolve) => setTimeout(resolve, 1000));
-    await fetch(`/api/categories/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
-    });
-
+    if (!categoryId) {
+      setIsSubmitting(false);
+      return;
+    }
+    await CategoryService.updateCategory(categoryId, formData);
     setIsSubmitting(false);
     router.push("/admin/categories");
   };
@@ -185,7 +187,21 @@ export default function NewCategoryPage() {
                 </div>
               </div>
 
-              <div></div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Trạng thái
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm text-gray-900">
+                  <input
+                    type="checkbox"
+                    name="isActive"
+                    checked={!!formData.isActive}
+                    onChange={handleInputChange}
+                    className="h-4 w-4 accent-orange-500"
+                  />
+                  Hoạt động
+                </label>
+              </div>
             </div>
           </div>
 
@@ -194,7 +210,7 @@ export default function NewCategoryPage() {
             <Link href="/admin/categories">
               <button
                 type="button"
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
               >
                 Hủy
               </button>
@@ -202,7 +218,7 @@ export default function NewCategoryPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors flex items-center disabled:opacity-50"
+              className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors flex items-center disabled:opacity-50 cursor-pointer"
             >
               <Save className="h-4 w-4 mr-2" />
               {isSubmitting ? "Đang lưu..." : "Lưu danh mục"}
