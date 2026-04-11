@@ -9,7 +9,14 @@ interface ReduxProviderProps {
 function StateProvider({ children }: ReduxProviderProps) {
   return (
     <Provider store={store}>
-      <PersistGate loading={null} persistor={persistor}>
+      <PersistGate
+        loading={
+          <div className="flex min-h-screen items-center justify-center bg-white text-sm text-gray-600">
+            Đang tải...
+          </div>
+        }
+        persistor={persistor}
+      >
         {children}
       </PersistGate>
     </Provider>

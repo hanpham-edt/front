@@ -1,5 +1,9 @@
 import { apiClient } from "./axios-config";
-import { UserQueryParams, UserResponse } from "@/types/user-types";
+import {
+  UpdateUserDto,
+  UserQueryParams,
+  UserResponse,
+} from "@/types/user-types";
 import { Users } from "@/types/user-types";
 
 export class UserService {
@@ -23,18 +27,44 @@ export class UserService {
     return response.data;
   }
 
-  static async getUserById(id: string): Promise<Users> {
+  static async getUserById(id: string) {
     const response = await apiClient.get<Users>(`${this.ENDPOINT}/${id}`);
     return response.data;
   }
 
-  static async createUser(user: Users): Promise<Users> {
-    const response = await apiClient.post(this.ENDPOINT, user);
+  static async getCurrentProfile(): Promise<Users> {
+    const response = await apiClient.get<Users>(`${this.ENDPOINT}/me`);
     return response.data;
   }
 
-  static async updateUser(id: string, user: Users): Promise<Users> {
-    const response = await apiClient.put(this.ENDPOINT, user);
+  /** Cập nhật hồ sơ của user đang đăng nhập */
+  static async updateCurrentProfile(
+    user: Partial<UpdateUserDto>,
+  ): Promise<Users> {
+    const response = await apiClient.patch<Users>(`${this.ENDPOINT}/me`, user);
+    return response.data;
+  }
+
+  /** Admin cập nhật user theo id */
+  static async updateUser(
+    id: string,
+    user: Partial<UpdateUserDto>,
+  ): Promise<Users> {
+    const response = await apiClient.patch<Users>(
+      `${this.ENDPOINT}/${encodeURIComponent(id)}`,
+      user,
+    );
+    return response.data;
+  }
+
+  static async changePassword(body: {
+    currentPassword: string;
+    newPassword: string;
+  }): Promise<{ message: string }> {
+    const response = await apiClient.patch<{ message: string }>(
+      `${this.ENDPOINT}/me/password`,
+      body,
+    );
     return response.data;
   }
 

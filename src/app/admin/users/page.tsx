@@ -86,12 +86,12 @@ export default function AdminUsersPage() {
               Quản lý tất cả người dùng trong hệ thống
             </p>
           </div>
-          <Link href="/admin/users/new">
+          {/* <Link href="/admin/users/new">
             <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center cursor-pointer">
               <Plus className="h-4 w-4 mr-2" />
               Thêm người dùng
             </button>
-          </Link>
+          </Link> */}
         </div>
       </div>
 
@@ -184,6 +184,9 @@ export default function AdminUsersPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Ngày tham gia
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Ngày cập nhật
+                </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Thao tác
                 </th>
@@ -240,6 +243,11 @@ export default function AdminUsersPage() {
                       ? new Date(user.createdAt).toLocaleString("vi-VN")
                       : ""}
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {user.createdAt
+                      ? new Date(user.updatedAt).toLocaleString("vi-VN")
+                      : ""}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">
                       <button
@@ -248,11 +256,11 @@ export default function AdminUsersPage() {
                       >
                         <Eye className="h-4 w-4" />
                       </button>
-                      <Link href={`/admin/users/${user.id}/edit`}>
+                      {/* <Link href={`/admin/users/${user.id}/edit`}>
                         <button className="text-orange-600 hover:text-orange-900">
                           <Edit className="h-4 w-4" />
                         </button>
-                      </Link>
+                      </Link> */}
                       <button
                         onClick={() => handleDelete(user.id)}
                         className="text-red-600 hover:text-red-900"
@@ -332,30 +340,6 @@ export default function AdminUsersPage() {
                       : ""}
                   </p>
                 </div>
-                {/* <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Đăng nhập cuối
-                  </label>
-                  <p className="text-sm text-gray-900">
-                    {formatDate(selectedUser.lastLogin)}
-                  </p>
-                </div> */}
-                {/* <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Tổng đơn hàng
-                  </label>
-                  <p className="text-sm text-gray-900">
-                    {selectedUser.totalOrders}
-                  </p>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Tổng chi tiêu
-                  </label>
-                  <p className="text-lg font-medium text-gray-900">
-                    {formatPrice(selectedUser.totalSpent)}
-                  </p>
-                </div> */}
               </div>
             </div>
           </div>

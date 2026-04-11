@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -15,9 +15,21 @@ import {
   User,
   Crown,
   Tags,
+  ChevronDown,
+  UserCircle,
+  KeyRound,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
+import { useSelector } from "react-redux";
+import type { IRootState } from "@/store";
+
+function selectRehydrated(state: IRootState): boolean {
+  const root = state as IRootState & {
+    _persist?: { rehydrated?: boolean };
+  };
+  return root._persist?.rehydrated === true;
+}
 
 export default function AdminLayout({
   children,
@@ -33,14 +45,60 @@ export default function AdminLayout({
     { name: "Settings", href: "/admin/settings", icon: Settings },
   ];
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const router = useRouter();
-  // Nếu là trang login, chỉ render children
+  const rehydrated = useSelector(selectRehydrated);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        accountMenuRef.current &&
+        !accountMenuRef.current.contains(e.target as Node)
+      ) {
+        setAccountMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const displayName =
+    user &&
+    [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
+
+  const accountLabel = displayName || user?.email || "Tài khoản";
 
   const handleLogout = async () => {
     await logout();
   };
+
+  const isLoginPage = pathname === "/admin/login";
+
+  // Không gọi router trong render — tránh vòng lặp / chặn cả trang login
+  useEffect(() => {
+    if (!rehydrated) return;
+    if (isLoginPage) return;
+    if (!user || user.role !== "ADMIN") {
+      router.replace("/admin/login");
+    }
+  }, [rehydrated, isLoginPage, user, router]);
+
+  // Trang đăng nhập: luôn render form, không bọc shell admin
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
+
+  if (!rehydrated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-100 text-sm text-gray-600">
+        Đang tải...
+      </div>
+    );
+  }
+
   if (user && user.role === "ADMIN") {
     return (
       <div className="min-h-screen bg-gray-100">
@@ -160,17 +218,66 @@ export default function AdminLayout({
             </button>
 
             <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-              <div className="flex flex-1"></div>
-              <div className="flex items-center gap-x-4 lg:gap-x-6">
-                <div className="flex items-center gap-x-4">
-                  <span className="text-sm text-gray-700">
-                    {" "}
-                    Welcome {user.firstName} {user.lastName}
-                  </span>
-                  <div className="w-8 h-8 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
-                    <User className="h-5 w-5 text-white" />
+              <div className="flex flex-1" />
+              <div
+                className="relative flex items-center"
+                ref={accountMenuRef}
+              >
+                <button
+                  type="button"
+                  onClick={() => setAccountMenuOpen((o) => !o)}
+                  className="flex items-center gap-2 rounded-lg border border-transparent px-2 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50 hover:border-gray-200"
+                  aria-expanded={accountMenuOpen}
+                  aria-haspopup="menu"
+                >
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-yellow-400 to-orange-500">
+                    <User className="h-4 w-4 text-white" />
                   </div>
-                </div>
+                  <span className="hidden max-w-[10rem] truncate sm:inline">
+                    {accountLabel}
+                  </span>
+                  <ChevronDown
+                    className={`h-4 w-4 flex-shrink-0 text-gray-500 transition-transform ${accountMenuOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+                {accountMenuOpen && (
+                  <div
+                    className="absolute right-0 top-full z-50 mt-1 w-56 rounded-md border border-gray-200 bg-white py-1 shadow-lg"
+                    role="menu"
+                  >
+                    <Link
+                      href="/admin/users/profile"
+                      role="menuitem"
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                      onClick={() => setAccountMenuOpen(false)}
+                    >
+                      <UserCircle className="h-4 w-4 text-gray-500" />
+                      Cập nhật hồ sơ
+                    </Link>
+                    <Link
+                      href="/admin/users/change-password"
+                      role="menuitem"
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                      onClick={() => setAccountMenuOpen(false)}
+                    >
+                      <KeyRound className="h-4 w-4 text-gray-500" />
+                      Đổi mật khẩu
+                    </Link>
+                    <div className="my-1 border-t border-gray-100" />
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
+                      onClick={() => {
+                        setAccountMenuOpen(false);
+                        void handleLogout();
+                      }}
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Đăng xuất
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -184,10 +291,12 @@ export default function AdminLayout({
         </div>
       </div>
     );
-  } else {
-    router.push("/admin/login");
-    if (pathname === "/admin/login") {
-      return <>{children}</>;
-    }
   }
+
+  // Chưa đăng nhập hoặc không phải ADMIN: đang redirect (useEffect ở trên)
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gray-100 text-sm text-gray-600">
+      Đang chuyển đến trang đăng nhập...
+    </div>
+  );
 }

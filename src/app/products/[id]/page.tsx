@@ -1,24 +1,25 @@
-import { products } from '@/lib/data';
-import { Star } from 'lucide-react';
-import Link from 'next/link';
-import { notFound } from 'next/navigation';
+"use client";
+import { products } from "@/lib/data";
+import { Star } from "lucide-react";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 
 // Generate static params for all products
-export async function generateStaticParams() {
-  return products.map((product) => ({
-    id: product.id,
-  }));
-}
+// export async function generateStaticParams() {
+//   return products.map((product) => ({
+//     id: product.id,
+//   }));
+// }
 
-export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const product = products.find(p => p.id === id);
-  if (!product) notFound();
+export default function ProductDetailPage() {
+  // const { id } = await params;
+  // const product = products.find(p => p.id === id);
+  // if (!product) notFound();
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
     }).format(price);
   };
 
@@ -51,7 +52,9 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                   <div className="w-32 h-32 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span className="text-white font-bold text-4xl">Y</span>
                   </div>
-                  <p className="text-gray-700 font-semibold text-lg">{product.name}</p>
+                  <p className="text-gray-700 font-semibold text-lg">
+                    {product.name}
+                  </p>
                 </div>
               </div>
               {/* Product Badges */}
@@ -63,16 +66,29 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                 )}
                 {product.originalPrice && (
                   <span className="bg-red-500 text-white text-xs px-3 py-1 rounded-full">
-                    -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
+                    -
+                    {Math.round(
+                      ((product.originalPrice - product.price) /
+                        product.originalPrice) *
+                        100,
+                    )}
+                    %
                   </span>
                 )}
-                <span className={`text-xs px-3 py-1 rounded-full ${
-                  product.category === 'premium' ? 'bg-yellow-100 text-yellow-800' :
-                  product.category === 'standard' ? 'bg-blue-100 text-blue-800' :
-                  'bg-green-100 text-green-800'
-                }`}>
-                  {product.category === 'premium' ? 'Cao Cấp' :
-                   product.category === 'standard' ? 'Tiêu Chuẩn' : 'Kinh Tế'}
+                <span
+                  className={`text-xs px-3 py-1 rounded-full ${
+                    product.category === "premium"
+                      ? "bg-yellow-100 text-yellow-800"
+                      : product.category === "standard"
+                        ? "bg-blue-100 text-blue-800"
+                        : "bg-green-100 text-green-800"
+                  }`}
+                >
+                  {product.category === "premium"
+                    ? "Cao Cấp"
+                    : product.category === "standard"
+                      ? "Tiêu Chuẩn"
+                      : "Kinh Tế"}
                 </span>
               </div>
             </div>
@@ -82,9 +98,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">
                   {product.name}
                 </h1>
-                <p className="text-gray-600 text-lg">
-                  {product.description}
-                </p>
+                <p className="text-gray-600 text-lg">{product.description}</p>
               </div>
               {/* Rating */}
               <div className="flex items-center space-x-2">
@@ -94,8 +108,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                       key={i}
                       className={`h-5 w-5 ${
                         i < Math.floor(product.rating)
-                          ? 'text-yellow-400 fill-current'
-                          : 'text-gray-300'
+                          ? "text-yellow-400 fill-current"
+                          : "text-gray-300"
                       }`}
                     />
                   ))}
@@ -129,10 +143,12 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                 </div>
                 <div>
                   <span className="text-sm text-gray-500">Tình trạng:</span>
-                  <p className={`font-medium ${
-                    product.inStock ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {product.inStock ? 'Còn hàng' : 'Hết hàng'}
+                  <p
+                    className={`font-medium ${
+                      product.inStock ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
+                    {product.inStock ? "Còn hàng" : "Hết hàng"}
                   </p>
                 </div>
               </div>
@@ -159,10 +175,15 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {products
-                .filter(p => p.id !== product.id && p.category === product.category)
+                .filter(
+                  (p) => p.id !== product.id && p.category === product.category,
+                )
                 .slice(0, 4)
                 .map((relatedProduct) => (
-                  <div key={relatedProduct.id} className="bg-white rounded-lg shadow-sm p-4">
+                  <div
+                    key={relatedProduct.id}
+                    className="bg-white rounded-lg shadow-sm p-4"
+                  >
                     <div className="w-full h-32 bg-gradient-to-br from-yellow-100 to-orange-100 rounded-lg flex items-center justify-center mb-4">
                       <div className="w-12 h-12 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
                         <span className="text-white font-bold">Y</span>
@@ -182,4 +203,4 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       </div>
     </div>
   );
-} 
+}
