@@ -1,6 +1,7 @@
 import { useSelector } from "react-redux";
 import { IRootState } from "@/store";
 import { CartItem } from "@/types/cart-types";
+
 export function useCart() {
   const reduxCart = useSelector((state: IRootState) => state.cart);
   const items: CartItem[] = reduxCart.items;
