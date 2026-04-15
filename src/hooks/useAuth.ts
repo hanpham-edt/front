@@ -2,7 +2,7 @@ import { useSelector } from "react-redux";
 import { IRootState } from "@/store";
 import { useState } from "react";
 import { authService } from "@/services/api/authService";
-import { LoginDto } from "@/types/auth-types";
+import { LoginDto, RegisterDto } from "@/types/auth-types";
 import { useAppDispatch } from "@/store";
 import { clearAuth, setAuth } from "@/store/slices/authSlice";
 
@@ -38,6 +38,26 @@ export function useAuth() {
     }
   };
 
+  const register = async (registerDto: RegisterDto): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await authService.register(registerDto);
+      dispatch(
+        setAuth({
+          accessToken: response.accessToken,
+          refreshToken: response.refreshToken,
+          user: response.user,
+        }),
+      );
+      return true;
+    } catch (error) {
+      setError("Đăng ký thất bại: " + error);
+      setIsLoading(false);
+      return false;
+    }
+  };
+
   return {
     user: authState.user,
     isAuthenticated: authState.isAuthenticated,
@@ -45,5 +65,6 @@ export function useAuth() {
     error,
     logout,
     login,
+    register,
   };
 }

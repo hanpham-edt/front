@@ -1,4 +1,4 @@
-import { LoginDto } from "@/types/auth-types";
+import { LoginDto, RegisterDto } from "@/types/auth-types";
 import { apiClient } from "./axios-config";
 import { LoginResponse } from "@/types/auth-types";
 
@@ -42,6 +42,15 @@ export const authService = {
     } catch (error) {
       console.error("Error logging in:", error);
       throw new Error("Failed to login");
+    }
+  },
+  register: async (registerDto: RegisterDto): Promise<LoginResponse> => {
+    try {
+      const response = await apiClient.post("/auth/register", registerDto);
+      return response.data;
+    } catch (error) {
+      console.error("Error registering:", error);
+      throw new Error("Failed to register");
     }
   },
 };
