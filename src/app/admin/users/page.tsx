@@ -1,9 +1,10 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { Search, Eye, Edit, Trash2, Plus, User, XCircle } from "lucide-react";
+import { Search, Eye, Edit, Trash2, User, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useUsers } from "@/hooks/useUsers";
 import { Users } from "@/types/user-types";
+import { UserService } from "@/services/api/UserService";
 
 const roleOptions = [
   { value: "all", label: "Tất cả" },
@@ -57,16 +58,14 @@ export default function AdminUsersPage() {
   };
 
   const confirmDelete = async () => {
-    // In real app, this would call API to delete user
-    //console.log("Deleting user:", userToDelete);
-    // try {
-    //   await fetch(`/api/users/${userToDelete}`, { method: "DELETE" });
-    //   fetchUsers(searchTerm);
-    // } catch (error) {
-    //   setError("Không thể xóa users nay");
-    // }
-    // setShowDeleteModal(false);
-    // setUserToDelete(null);
+    try {
+      if (!userToDelete) return null;
+      await UserService.deleteUser(userToDelete);
+    } catch (error) {
+      throw new Error("Không thể xóa users nay" + error);
+    }
+    setShowDeleteModal(false);
+    setUserToDelete(null);
   };
 
   const handleViewUser = (users: Users) => {
@@ -244,7 +243,7 @@ export default function AdminUsersPage() {
                       : ""}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {user.createdAt
+                    {user.updatedAt
                       ? new Date(user.updatedAt).toLocaleString("vi-VN")
                       : ""}
                   </td>
@@ -256,11 +255,11 @@ export default function AdminUsersPage() {
                       >
                         <Eye className="h-4 w-4" />
                       </button>
-                      {/* <Link href={`/admin/users/${user.id}/edit`}>
+                      <Link href={`/admin/users/${user.id}/edit`}>
                         <button className="text-orange-600 hover:text-orange-900">
                           <Edit className="h-4 w-4" />
                         </button>
-                      </Link> */}
+                      </Link>
                       <button
                         onClick={() => handleDelete(user.id)}
                         className="text-red-600 hover:text-red-900"

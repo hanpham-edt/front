@@ -3,69 +3,88 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Save } from "lucide-react";
+import { useParams } from "next/navigation";
+import { useUsers } from "@/hooks/useUsers";
 import { UserService } from "@/services/api/UserService";
-import { useAppDispatch } from "@/store";
-import { setUser } from "@/store/slices/authSlice";
-import { useAuth } from "@/hooks/useAuth";
+import { useForm } from "react-hook-form";
 
-export default function AdminProfilePage() {
-  const { user: authUser } = useAuth();
-  const dispatch = useAppDispatch();
-  const [email, setEmail] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+type FormValues = {
+  email: string;
+  firstName: string;
+  lastName: string;
+  isActive: boolean;
+};
+
+export default function AdminEditUserPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { user, getUser } = useUsers();
+  const params = useParams();
+  const paramId = params.id;
+  const userId =
+    typeof paramId === "string"
+      ? paramId
+      : Array.isArray(paramId)
+        ? paramId[0] ?? ""
+        : "";
+
+  const {
+    register,
+    reset,
+    handleSubmit,
+    formState: { isSubmitting, isDirty },
+  } = useForm<FormValues>({
+    defaultValues: {
+      email: "",
+      firstName: "",
+      lastName: "",
+      isActive: false,
+    },
+    mode: "onSubmit",
+  });
 
   useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const me = await UserService.getCurrentProfile();
-        if (cancelled) return;
-        setEmail(me.email);
-        setFirstName(me.firstName ?? "");
-        setLastName(me.lastName ?? "");
-      } catch {
-        if (!cancelled && authUser) {
-          setEmail(authUser.email);
-          setFirstName(authUser.firstName ?? "");
-          setLastName(authUser.lastName ?? "");
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [authUser]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    if (!userId) return;
     setMessage(null);
     setError(null);
-    setIsSubmitting(true);
+    void getUser(userId);
+  }, [userId, getUser]);
+
+  useEffect(() => {
+    // Chỉ "đổ" dữ liệu từ server vào form khi form chưa bị người dùng chỉnh (tránh overwrite).
+    if (!user || isDirty) return;
+    reset({
+      email: user.email ?? "",
+      firstName: user.firstName ?? "",
+      lastName: user.lastName ?? "",
+      isActive: !!user.isActive,
+    });
+  }, [user, isDirty, reset]);
+
+  const onSubmit = async (values: FormValues) => {
+    setMessage(null);
+    setError(null);
     try {
-      const updated = await UserService.updateCurrentProfile({
-        email,
-        firstName: firstName || undefined,
-        lastName: lastName || undefined,
+      const updated = await UserService.updateUser(userId, {
+        email: values.email,
+        firstName: values.firstName || undefined,
+        lastName: values.lastName || undefined,
+        isActive: values.isActive,
       });
-      dispatch(
-        setUser({
-          id: updated.id,
-          email: updated.email,
-          firstName: updated.firstName ?? undefined,
-          lastName: updated.lastName ?? undefined,
-        }),
-      );
-      setMessage("Đã cập nhật hồ sơ.");
+      setMessage("Đã cập nhật người dùng.");
+      // Reset ngay bằng dữ liệu vừa lưu để UI không nhảy về giá trị cũ.
+      reset({
+        email: updated.email ?? values.email,
+        firstName: updated.firstName ?? values.firstName,
+        lastName: updated.lastName ?? values.lastName,
+        isActive: !!updated.isActive,
+      });
+      // Đồng bộ lại dữ liệu từ server (không gây overwrite vì isDirty đang false sau reset).
+      void getUser(updated.id);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Không thể cập nhật hồ sơ.",
+        err instanceof Error ? err.message : "Không thể cập nhật người dùng.",
       );
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -82,13 +101,15 @@ export default function AdminProfilePage() {
           </button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Hồ sơ tài khoản</h1>
-          <p className="text-gray-600">Cập nhật email và họ tên</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Cập Nhật Người Dùng
+          </h1>
+          <p className="text-gray-600">Cập nhật email, họ tên, trạng thái </p>
         </div>
       </div>
 
       <div className="max-w-lg rounded-lg bg-white p-6 shadow">
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           {message && (
             <div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
               {message}
@@ -111,8 +132,7 @@ export default function AdminProfilePage() {
               id="email"
               type="email"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              {...register("email", { required: true })}
               className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
@@ -126,8 +146,7 @@ export default function AdminProfilePage() {
             <input
               id="firstName"
               type="text"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
+              {...register("firstName")}
               className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
@@ -141,10 +160,22 @@ export default function AdminProfilePage() {
             <input
               id="lastName"
               type="text"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
+              {...register("lastName")}
               className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Trạng thái
+            </label>
+            <label className="inline-flex items-center gap-2 text-sm text-gray-900">
+              <input
+                type="checkbox"
+                {...register("isActive")}
+                className="h-4 w-4 accent-orange-500"
+              />
+              Hoạt động
+            </label>
           </div>
           <div className="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200">
             <Link href="/admin/users">
@@ -158,8 +189,8 @@ export default function AdminProfilePage() {
 
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="inline-flex items-center rounded-md bg-orange-500 px-4 py-2 text-white hover:bg-orange-600 disabled:opacity-50"
+              disabled={isSubmitting || !isDirty}
+              className="inline-flex items-center rounded-md bg-orange-500 px-4 py-2 text-white hover:bg-orange-600 disabled:opacity-50 cursor-pointer"
             >
               <Save className="mr-2 h-4 w-4" />
               {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
