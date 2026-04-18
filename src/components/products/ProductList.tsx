@@ -10,7 +10,7 @@ export default function ProductList() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const { products, isLoading, getProducts, meta } = useProducts();
+  const { products, getProducts } = useProducts();
   const limit = 12;
 
   useEffect(() => {

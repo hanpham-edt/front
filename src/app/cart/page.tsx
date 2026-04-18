@@ -224,12 +224,12 @@ export default function CartPage() {
               </div>
 
               <div className="space-y-4">
-                <button
-                  type="button"
-                  className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 px-6 rounded-lg font-semibold transition-colors cursor-pointer"
+                <Link
+                  href="/checkout"
+                  className="block w-full text-center bg-orange-500 hover:bg-orange-600 text-white py-3 px-6 rounded-lg font-semibold transition-colors cursor-pointer"
                 >
                   Tiến hành thanh toán
-                </button>
+                </Link>
                 <p className="text-center text-xs text-gray-500">
                   Giỏ hàng được lưu tự động trên trình duyệt của bạn.
                 </p>

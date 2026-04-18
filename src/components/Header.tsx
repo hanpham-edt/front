@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ShoppingCart, Menu, X, User, ChevronDown } from "lucide-react";
+import { ShoppingCart, Menu, X, User, ChevronDown, Package } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/hooks/useCart";
 import ProfileFormModal from "@/components/account/ProfileFormModal";
@@ -117,6 +117,15 @@ export default function Header() {
                     role="menu"
                     className="absolute right-0 mt-2 w-56 rounded-lg border border-gray-100 bg-white shadow-lg overflow-hidden"
                   >
+                    <Link
+                      href="/account/orders"
+                      role="menuitem"
+                      onClick={() => setIsAccountMenuOpen(false)}
+                      className="flex items-center gap-2 w-full px-4 py-3 text-sm text-gray-700 hover:bg-orange-50"
+                    >
+                      <Package className="h-4 w-4 shrink-0 text-orange-600" />
+                      Đơn hàng của tôi
+                    </Link>
                     <button
                       type="button"
                       role="menuitem"
@@ -206,6 +215,16 @@ export default function Header() {
         {isMenuOpen && (
           <div className="md:hidden">
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+              {isAuthenticated ? (
+                <Link
+                  href="/account/orders"
+                  className="flex items-center gap-2 text-gray-700 hover:text-orange-500 px-3 py-2 rounded-md text-base font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <Package className="h-5 w-5 text-orange-600" />
+                  Đơn hàng của tôi
+                </Link>
+              ) : null}
               {navigation.map((item) => (
                 <Link
                   key={item.name}

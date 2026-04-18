@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Lock, Mail, User } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LoginForm({
   mode = "page",
@@ -17,12 +17,19 @@ export default function LoginForm({
   const [password, setPassword] = useState("");
   const { isAuthenticated, error, isLoading, login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const safeReturnPath = (raw: string | null): string | null => {
+    if (!raw || !raw.startsWith("/")) return null;
+    if (raw.startsWith("//")) return null;
+    return raw;
+  };
 
   useEffect(() => {
-    if (mode === "page" && isAuthenticated) {
-      router.push("/");
-    }
-  }, [isAuthenticated, mode, router]);
+    if (mode !== "page" || !isAuthenticated) return;
+    const next = safeReturnPath(searchParams.get("returnUrl"));
+    router.replace(next ?? "/");
+  }, [isAuthenticated, mode, router, searchParams]);
 
   const wrapClassName = useMemo(() => {
     if (mode === "modal") return "w-full";
@@ -41,7 +48,8 @@ export default function LoginForm({
       if (mode === "modal") {
         onSuccess?.();
       } else {
-        router.push("/");
+        const next = safeReturnPath(searchParams.get("returnUrl"));
+        router.push(next ?? "/");
       }
     }
   };

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Star, ShoppingCart, Heart, Eye } from "lucide-react";
+import { ShoppingCart, Heart, Eye } from "lucide-react";
 import { Product } from "@/types/product-types";
 import Image from "next/image";
 

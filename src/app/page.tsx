@@ -1,7 +1,6 @@
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import ProductList from "@/components/products/ProductList";
-import Benefits from "@/components/Benefits";
 import ChooseUs from "@/components/ChooseUs";
 import Testimonials from "@/components/Testimonials";
 import CtaSection from "@/components/CtaSection";

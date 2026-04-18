@@ -61,7 +61,13 @@ apiClient.interceptors.response.use(
       }
       store.dispatch(clearAuth());
       if (typeof window !== "undefined") {
-        window.location.href = "/admin/login";
+        const path = window.location.pathname;
+        const returnUrl = encodeURIComponent(path + window.location.search);
+        if (path.startsWith("/admin")) {
+          window.location.href = "/admin/login";
+        } else {
+          window.location.href = `/auth/login?returnUrl=${returnUrl}`;
+        }
       }
     }
     return Promise.reject(error);
