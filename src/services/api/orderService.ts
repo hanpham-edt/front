@@ -24,6 +24,7 @@ export const orderService = {
     return unwrap(data);
   },
 
+  //All order for user
   async getMyOrders(params?: {
     page?: number;
     limit?: number;
@@ -34,6 +35,33 @@ export const orderService = {
       params,
     });
     return data;
+  },
+
+  // All orders for admin
+  async getAllOrders(params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    search?: string;
+  }): Promise<PaginatedOrdersResponse> {
+    const { data } = await apiClient.get<PaginatedOrdersResponse>(
+      "/orders/admin/all",
+      {
+        params,
+      },
+    );
+    return data;
+  },
+
+  async updateOrderAdmin(
+    id: string,
+    body: { status?: string; trackingNumber?: string; notes?: string },
+  ): Promise<OrderResponse> {
+    const { data } = await apiClient.patch<OrderApiEnvelope>(
+      `/orders/admin/${id}`,
+      body,
+    );
+    return unwrap(data);
   },
 
   async cancelOrder(id: string): Promise<OrderResponse> {

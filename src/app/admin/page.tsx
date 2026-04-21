@@ -1,4 +1,3 @@
-"use client";
 import QuickActions from "./components/QuickActions";
 import TopProducts from "./components/TopProducts";
 import RecentOrders from "./components/RecentOrders";
