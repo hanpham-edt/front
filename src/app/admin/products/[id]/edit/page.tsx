@@ -9,6 +9,7 @@ import Image from "next/image";
 import { CreateProduct } from "@/types/product-types";
 import { ProductService } from "@/services/api/productService";
 import { useCategories } from "@/hooks/useCategory";
+import { uploadProductImageFile, isStoredImageUrl } from "@/utils/productImageUpload";
 
 export default function EditProductPage() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export default function EditProductPage() {
   const [imagePreview, setImagePreview] = useState<string[]>([]);
   const [images, setImages] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [formData, setFormData] = useState<CreateProduct>({
     name: "",
     sku: "",
@@ -65,10 +67,10 @@ export default function EditProductPage() {
     }));
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const validFiles = files.filter(
-      (file) => file.type.startsWith("image/") && file.size <= 5 * 1024 * 1024, // 5MB limit
+      (file) => file.type.startsWith("image/") && file.size <= 5 * 1024 * 1024,
     );
 
     if (validFiles.length + images.length + imagePreview.length > 5) {
@@ -76,22 +78,24 @@ export default function EditProductPage() {
       return;
     }
 
-    setImages((prev) => [...prev, ...validFiles]);
-
-    // Create preview URLs
-    validFiles.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string | undefined;
-        if (!result) return;
-        setImagePreview((prev) => [...prev, result]);
-        // Backend hiện chỉ nhận `imageUrl` (string). Tạm thời lấy ảnh đầu tiên làm imageUrl.
+    setIsUploadingImage(true);
+    try {
+      for (const file of validFiles) {
+        const url = await uploadProductImageFile(file);
+        setImages((prev) => [...prev, file]);
+        setImagePreview((prev) => [...prev, url]);
         setFormData((prev) =>
-          prev.imageUrl ? prev : { ...prev, imageUrl: result },
+          !prev.imageUrl || !isStoredImageUrl(prev.imageUrl)
+            ? { ...prev, imageUrl: url }
+            : prev,
         );
-      };
-      reader.readAsDataURL(file);
-    });
+      }
+    } catch {
+      alert("Upload ảnh thất bại. Vui lòng thử lại.");
+    } finally {
+      setIsUploadingImage(false);
+      e.target.value = "";
+    }
   };
 
   const removeImage = (index: number) => {
@@ -105,10 +109,17 @@ export default function EditProductPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const imageUrl = imagePreview[0] ?? formData.imageUrl ?? "";
+    if (imageUrl && !isStoredImageUrl(imageUrl)) {
+      alert(
+        "Ảnh hiện tại đang ở dạng base64. Vui lòng upload lại ảnh để lưu vào /images/.",
+      );
+      return;
+    }
     setIsSubmitting(true);
     await ProductService.updateProduct(String(id), {
       ...formData,
-      imageUrl: imagePreview[0] ?? formData.imageUrl ?? "",
+      imageUrl,
     });
     setIsSubmitting(false);
     router.push("/admin/products");

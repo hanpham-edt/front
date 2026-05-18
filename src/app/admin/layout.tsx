@@ -18,6 +18,7 @@ import {
   ChevronDown,
   UserCircle,
   KeyRound,
+  Contact,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
@@ -38,10 +39,12 @@ export default function AdminLayout({
 }) {
   const navigation = [
     { name: "Dashboard", href: "/admin", icon: BarChart3 },
+    { name: "Users", href: "/admin/users", icon: Users },
     { name: "Categories", href: "/admin/categories", icon: Tags },
     { name: "Products", href: "/admin/products", icon: Package },
     { name: "Orders", href: "/admin/orders", icon: ShoppingCart },
-    { name: "Users", href: "/admin/users", icon: Users },
+    { name: "Contacts", href: "/admin/contacts", icon: Contact },
+    { name: "Hero", href: "/admin/hero", icon: Contact },
     { name: "Settings", href: "/admin/settings", icon: Settings },
   ];
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -66,8 +69,7 @@ export default function AdminLayout({
   }, []);
 
   const displayName =
-    user &&
-    [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
+    user && [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
 
   const accountLabel = displayName || user?.email || "Tài khoản";
 
@@ -219,10 +221,7 @@ export default function AdminLayout({
 
             <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
               <div className="flex flex-1" />
-              <div
-                className="relative flex items-center"
-                ref={accountMenuRef}
-              >
+              <div className="relative flex items-center" ref={accountMenuRef}>
                 <button
                   type="button"
                   onClick={() => setAccountMenuOpen((o) => !o)}

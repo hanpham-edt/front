@@ -3,6 +3,18 @@ import axios from "axios";
 import { authService } from "./authService";
 import { clearAuth, setTokens } from "@/store/slices/authSlice";
 
+const PUBLIC_AUTH_PATHS = [
+  "/auth/login",
+  "/auth/register",
+  "/auth/forgot-password",
+  "/auth/reset-password",
+];
+
+function isPublicAuthRequest(url?: string): boolean {
+  if (!url) return false;
+  return PUBLIC_AUTH_PATHS.some((path) => url.includes(path));
+}
+
 export const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
   headers: {
@@ -14,12 +26,13 @@ apiClient.interceptors.request.use(
   (config) => {
     const state = store.getState();
     const token = state.auth.accessToken;
+    const url = config.url ?? "";
     // Nếu request đã tự set Authorization (vd: /auth/refresh dùng refresh token)
     // thì không ghi đè bằng access token.
     const alreadyHasAuthHeader =
       typeof config.headers?.Authorization === "string" &&
       config.headers.Authorization.length > 0;
-    if (token && !alreadyHasAuthHeader) {
+    if (token && !alreadyHasAuthHeader && !isPublicAuthRequest(url)) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -38,8 +51,8 @@ apiClient.interceptors.response.use(
     const isAuthEndpoint =
       url.includes("/auth/login") || url.includes("/auth/refresh");
 
-    // Không auto-redirect khi login thất bại (401 là expected)
-    if (status === 401 && isAuthEndpoint) {
+    // Không refresh/redirect trên endpoint auth công khai hoặc login thất bại
+    if (status === 401 && (isAuthEndpoint || isPublicAuthRequest(url))) {
       return Promise.reject(error);
     }
 

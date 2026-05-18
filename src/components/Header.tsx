@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ShoppingCart, Menu, X, User, ChevronDown, Package } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/hooks/useCart";
@@ -20,6 +21,7 @@ export default function Header() {
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const { totalItems: cartCount } = useCart();
   const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const router = useRouter();
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
 
   const navigation = [
@@ -266,6 +268,10 @@ export default function Header() {
           onGoRegister={() => {
             setIsLoginOpen(false);
             setIsRegisterOpen(true);
+          }}
+          onGoForgotPassword={() => {
+            setIsLoginOpen(false);
+            router.push("/auth/forgot-password");
           }}
         />
       </Modal>

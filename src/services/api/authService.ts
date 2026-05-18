@@ -1,6 +1,13 @@
-import { LoginDto, RegisterDto } from "@/types/auth-types";
+import {
+  ForgotPasswordDto,
+  LoginDto,
+  MessageResponse,
+  RegisterDto,
+  ResetPasswordDto,
+} from "@/types/auth-types";
 import { apiClient } from "./axios-config";
 import { LoginResponse } from "@/types/auth-types";
+import axios from "axios";
 
 type RefreshResponse = Pick<LoginResponse, "accessToken" | "refreshToken">;
 
@@ -53,4 +60,36 @@ export const authService = {
       throw new Error("Failed to register");
     }
   },
+  forgotPassword: async (
+    dto: ForgotPasswordDto,
+  ): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>(
+      "/auth/forgot-password",
+      dto,
+      { timeout: 30000 },
+    );
+    return response.data;
+  },
+  resetPassword: async (dto: ResetPasswordDto): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>(
+      "/auth/reset-password",
+      dto,
+      { timeout: 30000 },
+    );
+    return response.data;
+  },
 };
+
+function getApiErrorMessage(error: unknown, fallback: string): string {
+  if (axios.isAxiosError(error)) {
+    if (error.code === "ECONNABORTED") {
+      return "Kết nối quá lâu. Nếu đã nhận email, hãy kiểm tra hộp thư.";
+    }
+    const data = error.response?.data as { message?: string | string[] };
+    if (Array.isArray(data?.message)) return data.message.join(", ");
+    if (typeof data?.message === "string") return data.message;
+  }
+  return fallback;
+}
+
+export { getApiErrorMessage };
