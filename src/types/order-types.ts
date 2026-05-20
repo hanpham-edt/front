@@ -13,6 +13,7 @@ export interface OrderItemResponse {
   id: string;
   productId: string;
   productName: string;
+  imageUrl?: string;
   quantity: number;
   price: number;
   subtotal: number;

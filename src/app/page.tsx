@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import ProductList from "@/components/products/ProductList";
@@ -14,7 +15,17 @@ export default function Home() {
       <Hero />
 
       {/* Featured Products */}
-      <ProductList />
+      <Suspense
+        fallback={
+          <section className="py-16 bg-gray-50">
+            <div className="mx-auto max-w-7xl px-4 py-12 text-center">
+              <div className="mx-auto h-8 max-w-xs animate-pulse rounded bg-gray-200" />
+            </div>
+          </section>
+        }
+      >
+        <ProductList />
+      </Suspense>
 
       {/* Benefits Section */}
       {/* <Benefits /> */}

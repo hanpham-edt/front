@@ -22,17 +22,17 @@ export const authService = {
       return;
     }
   },
-  refreshToken: async (refreshToken: string): Promise<RefreshResponse | null> => {
+  refreshToken: async (
+    refreshToken: string,
+  ): Promise<RefreshResponse | null> => {
     if (!refreshToken) {
       return null;
     }
     try {
       // Backend RefreshTokenGuard lấy refresh token từ Authorization: Bearer <token>
-      const response = await apiClient.post(
-        "/auth/refresh",
-        undefined,
-        { headers: { Authorization: `Bearer ${refreshToken}` } },
-      );
+      const response = await apiClient.post("/auth/refresh", undefined, {
+        headers: { Authorization: `Bearer ${refreshToken}` },
+      });
       const accessToken = response.data?.accessToken;
       const newRefreshToken = response.data?.refreshToken;
       if (!accessToken || !newRefreshToken) return null;
@@ -57,12 +57,10 @@ export const authService = {
       return response.data;
     } catch (error) {
       console.error("Error registering:", error);
-      throw new Error("Failed to register");
+      throw new Error("Email đã đăng ký");
     }
   },
-  forgotPassword: async (
-    dto: ForgotPasswordDto,
-  ): Promise<MessageResponse> => {
+  forgotPassword: async (dto: ForgotPasswordDto): Promise<MessageResponse> => {
     const response = await apiClient.post<MessageResponse>(
       "/auth/forgot-password",
       dto,

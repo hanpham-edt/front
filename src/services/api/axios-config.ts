@@ -10,9 +10,16 @@ const PUBLIC_AUTH_PATHS = [
   "/auth/reset-password",
 ];
 
+const PUBLIC_READ_PATHS = ["/heros", "/settings/public"];
+
 function isPublicAuthRequest(url?: string): boolean {
   if (!url) return false;
   return PUBLIC_AUTH_PATHS.some((path) => url.includes(path));
+}
+
+function isPublicReadRequest(url?: string): boolean {
+  if (!url) return false;
+  return PUBLIC_READ_PATHS.some((path) => url.includes(path));
 }
 
 export const apiClient = axios.create({
@@ -32,7 +39,12 @@ apiClient.interceptors.request.use(
     const alreadyHasAuthHeader =
       typeof config.headers?.Authorization === "string" &&
       config.headers.Authorization.length > 0;
-    if (token && !alreadyHasAuthHeader && !isPublicAuthRequest(url)) {
+    if (
+      token &&
+      !alreadyHasAuthHeader &&
+      !isPublicAuthRequest(url) &&
+      !isPublicReadRequest(url)
+    ) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;

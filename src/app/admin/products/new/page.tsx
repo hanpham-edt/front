@@ -1,15 +1,18 @@
-'use client';
+"use client";
 
-import { useState, useEffect} from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, X, Upload } from 'lucide-react';
-import Link from 'next/link';
-import Image from 'next/image';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Save, X, Upload } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
 
-import { CreateProduct } from '@/types/product-types';
-import { ProductService } from '@/services/api/productService';
-import { useCategories } from '@/hooks/useCategory';
-import { uploadProductImageFile, isStoredImageUrl } from '@/utils/productImageUpload';
+import { CreateProduct } from "@/types/product-types";
+import { ProductService } from "@/services/api/productService";
+import { useCategories } from "@/hooks/useCategory";
+import {
+  uploadProductImageFile,
+  isStoredImageUrl,
+} from "@/utils/productImageUpload";
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -19,20 +22,18 @@ export default function NewProductPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [formData, setFormData] = useState<CreateProduct>({
-    name: '',
-    sku: '',
-    categoryId: '',
+    name: "",
+    sku: "",
+    categoryId: "",
     price: 0,
-    description: '',
+    description: "",
     stock: 0,
-    imageUrl: '',
+    imageUrl: "",
     isActive: true,
   });
 
-
   useEffect(() => {
     void getCategories();
-   
   }, [getCategories]);
 
   // Nếu user không chọn danh mục, set mặc định theo danh mục đầu tiên load được
@@ -42,23 +43,27 @@ export default function NewProductPage() {
     }
   }, [categories, formData.categoryId]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
     const { name, value, type } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+      [name]:
+        type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }));
   };
 
- 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const validFiles = files.filter(file => 
-      file.type.startsWith('image/') && file.size <= 5 * 1024 * 1024 // 5MB limit
+    const validFiles = files.filter(
+      (file) => file.type.startsWith("image/") && file.size <= 5 * 1024 * 1024, // 5MB limit
     );
 
     if (validFiles.length + images.length + imagePreview.length > 5) {
-      alert('Tối đa 5 hình ảnh cho mỗi sản phẩm');
+      alert("Tối đa 5 hình ảnh cho mỗi sản phẩm");
       return;
     }
 
@@ -66,45 +71,47 @@ export default function NewProductPage() {
     try {
       for (const file of validFiles) {
         const url = await uploadProductImageFile(file);
-        setImages(prev => [...prev, file]);
-        setImagePreview(prev => [...prev, url]);
-        setFormData(prev => (prev.imageUrl ? prev : { ...prev, imageUrl: url }));
+        setImages((prev) => [...prev, file]);
+        setImagePreview((prev) => [...prev, url]);
+        setFormData((prev) =>
+          prev.imageUrl ? prev : { ...prev, imageUrl: url },
+        );
       }
     } catch {
-      alert('Upload ảnh thất bại. Vui lòng thử lại.');
+      alert("Upload ảnh thất bại. Vui lòng thử lại.");
     } finally {
       setIsUploadingImage(false);
-      e.target.value = '';
+      e.target.value = "";
     }
   };
 
   const removeImage = (index: number) => {
-    setImagePreview(prev => {
+    setImagePreview((prev) => {
       const next = prev.filter((_, i) => i !== index);
-      setFormData(p => ({ ...p, imageUrl: next[0] ?? "" }));
+      setFormData((p) => ({ ...p, imageUrl: next[0] ?? "" }));
       return next;
     });
-    setImages(prev => prev.filter((_, i) => i !== index));
+    setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-
-// Create new product
+  // Create new product
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const imageUrl = imagePreview[0] ?? formData.imageUrl ?? "";
     if (imageUrl && !isStoredImageUrl(imageUrl)) {
-      alert("Vui lòng upload ảnh sản phẩm (lưu vào /images/), không dùng base64.");
+      alert(
+        "Vui lòng upload ảnh sản phẩm (lưu vào /images/), không dùng base64.",
+      );
       return;
     }
-    setIsSubmitting(true)
+    setIsSubmitting(true);
 
-    await ProductService.createProduct( {
+    await ProductService.createProduct({
       ...formData,
       imageUrl,
     });
     setIsSubmitting(false);
-    router.push('/admin/products');
-  
+    router.push("/admin/products");
   };
 
   return (
@@ -118,8 +125,12 @@ export default function NewProductPage() {
               </button>
             </Link>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Chỉnh sửa sản phẩm</h1>
-              <p className="text-gray-600">Cập nhật thông tin sản phẩm yến sào</p>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Chỉnh sửa sản phẩm
+              </h1>
+              <p className="text-gray-600">
+                Cập nhật thông tin sản phẩm yến sào
+              </p>
             </div>
           </div>
         </div>
@@ -129,10 +140,15 @@ export default function NewProductPage() {
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Basic Information */}
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Thông tin cơ bản</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Thông tin cơ bản
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="name"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Tên sản phẩm *
                 </label>
                 <input
@@ -148,8 +164,11 @@ export default function NewProductPage() {
               </div>
 
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                  Sku * 
+                <label
+                  htmlFor="name"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Sku *
                 </label>
                 <input
                   type="text"
@@ -164,7 +183,10 @@ export default function NewProductPage() {
               </div>
 
               <div>
-                <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="category"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Danh mục *
                 </label>
                 <select
@@ -187,7 +209,10 @@ export default function NewProductPage() {
               </div>
 
               <div>
-                <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="price"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Giá bán (VNĐ) *
                 </label>
                 <input
@@ -202,7 +227,10 @@ export default function NewProductPage() {
                 />
               </div>
               <div>
-                <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="price"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Stock
                 </label>
                 <input
@@ -221,7 +249,10 @@ export default function NewProductPage() {
 
           {/* Description */}
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="description"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Mô tả sản phẩm *
             </label>
             <textarea
@@ -255,10 +286,14 @@ export default function NewProductPage() {
                 <label htmlFor="image-upload" className="cursor-pointer">
                   <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                   <p className="text-sm text-gray-600">
-                    Kéo thả hình ảnh vào đây hoặc <span className="text-orange-500 font-medium">chọn file</span>
+                    Kéo thả hình ảnh vào đây hoặc{" "}
+                    <span className="text-orange-500 font-medium">
+                      chọn file
+                    </span>
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    Hỗ trợ: JPG, PNG, GIF. Tối đa 5MB mỗi file. Tối đa 5 hình ảnh.
+                    Hỗ trợ: JPG, PNG, GIF. Tối đa 5MB mỗi file. Tối đa 5 hình
+                    ảnh.
                   </p>
                 </label>
               </div>
@@ -266,7 +301,9 @@ export default function NewProductPage() {
               {/* Image Preview */}
               {imagePreview.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-3">Hình ảnh đã chọn:</h4>
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">
+                    Hình ảnh đã chọn:
+                  </h4>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {imagePreview.map((preview, index) => (
                       <div key={index} className="relative group">
@@ -297,10 +334,11 @@ export default function NewProductPage() {
             </div>
           </div>
 
-
           {/* Status */}
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Trạng thái</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Trạng thái
+            </h3>
             <div className="space-y-4">
               <div className="flex items-center">
                 <input
@@ -311,7 +349,10 @@ export default function NewProductPage() {
                   onChange={handleInputChange}
                   className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
                 />
-                <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900">
+                <label
+                  htmlFor="isActive"
+                  className="ml-2 block text-sm text-gray-900"
+                >
                   Đang bán
                 </label>
               </div>
@@ -334,11 +375,11 @@ export default function NewProductPage() {
               className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors flex items-center disabled:opacity-50 cursor-pointer"
             >
               <Save className="h-4 w-4 mr-2" />
-              {isSubmitting ? 'Đang lưu...' : 'Lưu sản phẩm'}
+              {isSubmitting ? "Đang lưu..." : "Lưu sản phẩm"}
             </button>
           </div>
         </form>
       </div>
     </div>
   );
-} 
+}

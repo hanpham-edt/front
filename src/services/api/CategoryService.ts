@@ -40,6 +40,7 @@ export class CategoryService {
     if (category.slug !== undefined) payload.slug = category.slug;
     if (category.imageUrl !== undefined) payload.imageUrl = category.imageUrl;
     if (category.isActive !== undefined) payload.isActive = category.isActive;
+    if (category.parentId !== undefined) payload.parentId = category.parentId;
 
     const safeId = id.trim();
     const response = await apiClient.patch(

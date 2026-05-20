@@ -4,8 +4,14 @@ import { useState } from "react";
 import { Phone, Mail, MapPin, Clock, Send, CheckCircle } from "lucide-react";
 import { CreateContact } from "@/types/contact-types";
 import { contactService } from "@/services/api/contactService";
+import { usePublicSettings } from "@/hooks/usePublicSettings";
+
+function telHref(phone: string) {
+  return `tel:${phone.replace(/\s/g, "")}`;
+}
 
 export default function ContactPage() {
+  const { siteInfo } = usePublicSettings();
   const [formData, setFormData] = useState<CreateContact>({
     fullName: "",
     email: "",
@@ -220,8 +226,12 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900 mb-1">Email</h3>
-                    <p className="text-gray-600">hanphambq@gmail.com</p>
-                    <p className="text-gray-600">support@aphuhan.com</p>
+                    <a
+                      href={`mailto:${siteInfo.contactEmail}`}
+                      className="text-gray-600 hover:text-orange-600"
+                    >
+                      {siteInfo.contactEmail}
+                    </a>
                   </div>
                 </div>
 
@@ -279,8 +289,7 @@ export default function ContactPage() {
                     Thời gian giao hàng là bao lâu?
                   </h3>
                   <p className="text-gray-600">
-                    Chúng tôi giao hàng trong vòng 1-3 ngày làm việc tại TP.HCM
-                    và 3-5 ngày cho các tỉnh thành khác.
+                    Thời gian giao hàng dự kiến: {siteInfo.deliveryTime}.
                   </p>
                 </div>
 
@@ -289,8 +298,7 @@ export default function ContactPage() {
                     Có chính sách đổi trả không?
                   </h3>
                   <p className="text-gray-600">
-                    Chúng tôi có chính sách đổi trả trong vòng 7 ngày nếu sản
-                    phẩm có vấn đề về chất lượng.
+                    Chính sách đổi trả: {siteInfo.returnPolicy}.
                   </p>
                 </div>
               </div>

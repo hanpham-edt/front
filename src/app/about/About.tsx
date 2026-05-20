@@ -1,4 +1,5 @@
-import { Award, Shield, Heart, Star, MapPin, Phone, Mail } from "lucide-react";
+import { Award, Shield, Heart, Star } from "lucide-react";
+import PublicContactInfo from "@/components/PublicContactInfo";
 
 export default function AboutPage() {
   return (
@@ -174,45 +175,21 @@ export default function AboutPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-white font-bold text-xl">1</span>
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
+            {[
+              ['Thu hoạch', 'Yến được thu hoạch từ đảo yến tự nhiên, đảm bảo nguồn gốc.'],
+              ['Chế biến', 'Quy trình làm sạch và chế biến theo tiêu chuẩn nghiêm ngặt.'],
+              ['Kiểm định', 'Kiểm tra chất lượng trước khi đưa vào kho.'],
+              ['Đóng gói', 'Đóng gói kín, bảo quản và giao đến tay khách hàng.'],
+            ].map(([title, desc], index) => (
+              <div key={title} className="text-center">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 text-2xl font-bold text-white">
+                  {index + 1}
+                </div>
+                <h3 className="mb-2 text-xl font-semibold text-gray-900">{title}</h3>
+                <p className="text-gray-600">{desc}</p>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Thu Hoạch
-              </h3>
-              <p className="text-gray-600">
-                Thu hoạch yến sào từ những đảo yến tự nhiên, đảm bảo nguồn gốc
-                rõ ràng và chất lượng cao.
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-white font-bold text-xl">2</span>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Chế Biến
-              </h3>
-              <p className="text-gray-600">
-                Quy trình chế biến nghiêm ngặt, loại bỏ tạp chất, giữ nguyên
-                dinh dưỡng tự nhiên.
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-white font-bold text-xl">3</span>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Đóng Gói
-              </h3>
-              <p className="text-gray-600">
-                Đóng gói cẩn thận, bảo quản tốt để giữ nguyên chất lượng và
-                hương vị tự nhiên.
-              </p>
-            </div>
+            ))}
           </div>
         </div>
       </section>
@@ -229,39 +206,7 @@ export default function AboutPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Phone className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Điện Thoại
-              </h3>
-              <p className="text-gray-600">+84 123 456 789</p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Mail className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Email
-              </h3>
-              <p className="text-gray-600">info@yensaopremium.com</p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MapPin className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Địa Chỉ
-              </h3>
-              <p className="text-gray-600">
-                123 Đường ABC, Quận 1, TP.HCM, Việt Nam
-              </p>
-            </div>
-          </div>
+          <PublicContactInfo layout="cards" />
         </div>
       </section>
     </div>

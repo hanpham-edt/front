@@ -1,33 +1,33 @@
 "use client";
-import React from "react";
+
 import Link from "next/link";
 import ProductCard from "./ProductCard";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useProducts } from "@/hooks/useProducts";
-import { Search } from "lucide-react";
 
 export default function ProductList() {
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const searchParams = useSearchParams();
+  const searchFromUrl = searchParams.get("search") ?? "";
+  const categoryFromUrl = searchParams.get("category") ?? "";
+  const [debouncedSearch, setDebouncedSearch] = useState(searchFromUrl);
+  const [page] = useState(1);
   const { products, getProducts } = useProducts();
   const limit = 12;
 
   useEffect(() => {
-    getProducts({ page, limit, search: debouncedSearch });
-  }, [getProducts, page, limit, debouncedSearch]);
+    const timer = setTimeout(() => setDebouncedSearch(searchFromUrl), 400);
+    return () => clearTimeout(timer);
+  }, [searchFromUrl]);
 
-  const handleSearch = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value;
-      setSearch(value);
-      setPage(1);
-      setTimeout(() => {
-        setDebouncedSearch(value);
-      }, 500);
-    },
-    [setSearch, setPage],
-  );
+  useEffect(() => {
+    getProducts({
+      page,
+      limit,
+      search: debouncedSearch,
+      category: categoryFromUrl || undefined,
+    });
+  }, [getProducts, page, limit, debouncedSearch, categoryFromUrl]);
 
   return (
     <section className="py-16 bg-gray-50">
@@ -40,33 +40,34 @@ export default function ProductList() {
             Khám phá những sản phẩm yến sào cao cấp được chọn lọc kỹ lưỡng, đảm
             bảo chất lượng và dinh dưỡng tốt nhất cho sức khỏe của bạn.
           </p>
+          {debouncedSearch ? (
+            <p className="mt-4 text-sm text-gray-500">
+              Kết quả cho:{" "}
+              <span className="font-medium text-orange-600">
+                &quot;{debouncedSearch}&quot;
+              </span>
+            </p>
+          ) : null}
+        </div>
 
-          {/* Search Bar */}
-          <div className="hidden md:flex flex-1 max-w-md mx-8">
-            <div className="relative w-full">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                onChange={handleSearch}
-                value={search}
-                type="text"
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
-                placeholder="Tìm kiếm sản phẩm..."
-              />
-            </div>
+        {products.length === 0 ? (
+          <p className="py-12 text-center text-gray-500">
+            Không tìm thấy sản phẩm phù hợp.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 items-stretch gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        )}
 
         <div className="text-center mt-12">
           <Link href="/products">
-            <button className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-lg font-semibold transition-colors cursor-pointer">
+            <button
+              type="button"
+              className="cursor-pointer rounded-lg bg-orange-500 px-8 py-3 font-semibold text-white transition-colors hover:bg-orange-600"
+            >
               Xem Tất Cả Sản Phẩm
             </button>
           </Link>

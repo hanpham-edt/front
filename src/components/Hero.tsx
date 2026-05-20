@@ -2,52 +2,49 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ChevronLeft, ChevronRight, Star, Shield, Truck, Clock } from 'lucide-react';
+import { heroService } from '@/services/api/heroService';
+import type { Hero } from '@/types/hero-types';
 
-const slides = [
+const FALLBACK_SLIDES: Hero[] = [
   {
-    id: 1,
-    title: 'Yến Sào Huyết Đỏ Premium',
+    id: 0,
+    title: 'Yến Sào Premium',
     subtitle: 'Sản phẩm cao cấp từ đảo yến tự nhiên',
-    description: 'Yến sào huyết đỏ được thu hoạch từ những tổ yến tự nhiên, giàu dinh dưỡng và khoáng chất quý hiếm.',
-    image: '/images/hero-1.jpg',
-    price: '2.500.000 VNĐ',
-    originalPrice: '3.000.000 VNĐ',
-    cta: 'Mua Ngay',
-    ctaLink: '/products/1'
+    description: 'Chất lượng đảm bảo, nguồn gốc rõ ràng.',
+    imageUrl: '/images/hero-1.jpg',
+    ctaLink: '/products',
+    createdAt: '',
+    updatedAt: '',
   },
-  {
-    id: 2,
-    title: 'Yến Sào Trắng Tinh Khiết',
-    subtitle: 'Chất lượng cao, hương vị tự nhiên',
-    description: 'Yến sào trắng tinh khiết được chọn lọc kỹ lưỡng, không tạp chất, hương vị thơm ngon tự nhiên.',
-    image: '/images/hero-2.jpg',
-    price: '1.800.000 VNĐ',
-    originalPrice: '2.200.000 VNĐ',
-    cta: 'Khám Phá',
-    ctaLink: '/products/2'
-  },
-  {
-    id: 3,
-    title: 'Yến Sào Vàng Hồng',
-    subtitle: 'Màu sắc tự nhiên, dinh dưỡng cao',
-    description: 'Yến sào vàng hồng chất lượng cao, màu sắc tự nhiên, giàu dinh dưỡng và khoáng chất.',
-    image: '/images/hero-3.jpg',
-    price: '1.200.000 VNĐ',
-    cta: 'Xem Thêm',
-    ctaLink: '/products/3'
-  }
 ];
 
 export default function Hero() {
+  const [slides, setSlides] = useState<Hero[]>(FALLBACK_SLIDES);
   const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
+    void (async () => {
+      try {
+        const data = await heroService.getAll();
+        if (data.length > 0) {
+          setSlides(data);
+          setCurrentSlide(0);
+        }
+      } catch {
+        // giữ fallback
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (slides.length <= 1) return;
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 5000);
     return () => clearInterval(timer);
-  }, []);
+  }, [slides.length]);
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % slides.length);
@@ -59,137 +56,120 @@ export default function Hero() {
 
   return (
     <section className="relative h-[600px] overflow-hidden">
-      {/* Slides */}
       <div className="relative h-full">
-        {slides.map((slide, index) => (
+        {slides.map((s, index) => (
           <div
-            key={slide.id}
+            key={s.id}
             className={`absolute inset-0 transition-opacity duration-1000 ${
               index === currentSlide ? 'opacity-100' : 'opacity-0'
             }`}
           >
-            {/* Background */}
-            <div className="absolute inset-0 bg-gradient-to-r from-yellow-100 via-orange-100 to-yellow-50">
-              <div className="absolute inset-0 bg-black bg-opacity-20"></div>
-            </div>
+            {s.imageUrl ? (
+              <Image
+                src={s.imageUrl}
+                alt={s.title}
+                fill
+                className="object-cover"
+                priority={index === 0}
+                unoptimized
+              />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-r from-yellow-100 via-orange-100 to-yellow-50" />
+            )}
+            <div className="absolute inset-0 bg-black/40" />
 
-            {/* Content */}
             <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex items-center h-full">
+              <div className="flex h-full items-center">
                 <div className="w-full lg:w-1/2">
-                  <div className="text-white space-y-6">
+                  <div className="space-y-6 text-white">
                     <div className="flex items-center space-x-2">
                       <Star className="h-5 w-5 text-yellow-400" />
                       <span className="text-sm font-medium">Sản phẩm cao cấp</span>
                     </div>
-                    
-                    <h1 className="text-4xl md:text-6xl font-bold leading-tight">
-                      {slide.title}
+                    <h1 className="text-4xl font-bold leading-tight md:text-6xl">
+                      {s.title}
                     </h1>
-                    
-                    <p className="text-xl md:text-2xl text-yellow-100">
-                      {slide.subtitle}
-                    </p>
-                    
-                    <p className="text-lg text-gray-200 max-w-md">
-                      {slide.description}
-                    </p>
-                 
-                    <div className="flex items-center space-x-4">
-                      <div className="text-3xl font-bold text-orange-400">
-                        {slide.price}
-                      </div>
-                      {slide.originalPrice && (
-                        <div className="text-lg text-gray-300 line-through">
-                          {slide.originalPrice}
-                        </div>
-                      )}
-                    </div>
-
+                    <p className="text-xl text-yellow-100 md:text-2xl">{s.subtitle}</p>
+                    {s.description ? (
+                      <p className="max-w-md text-lg text-gray-200">{s.description}</p>
+                    ) : null}
                     <div className="flex space-x-4">
-                      <Link href={slide.ctaLink}>
-                        <button className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-lg font-semibold transition-colors">
-                          {slide.cta}
+                      <Link href={s.ctaLink}>
+                        <button
+                          type="button"
+                          className="rounded-lg bg-orange-500 px-8 py-3 font-semibold text-white transition-colors hover:bg-orange-600"
+                        >
+                          Khám phá ngay
                         </button>
                       </Link>
                       <Link href="/products">
-                        <button className="border-2 border-white text-white hover:bg-white hover:text-gray-900 px-8 py-3 rounded-lg font-semibold transition-colors">
-                          Xem Tất Cả
+                        <button
+                          type="button"
+                          className="rounded-lg border-2 border-white px-8 py-3 font-semibold text-white transition-colors hover:bg-white hover:text-gray-900"
+                        >
+                          Xem tất cả
                         </button>
                       </Link>
                     </div>
                   </div>
                 </div>
-
-               {/* <div className="hidden lg:block w-1/2">
-                  <div className="flex justify-center">
-                    <div className="w-80 h-80 bg-gradient-to-br from-yellow-200 to-orange-200 rounded-full flex items-center justify-center">
-                      <div className="text-center">
-                        <div className="w-24 h-24 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <span className="text-white font-bold text-3xl">Y</span>
-                        </div>
-                        <p className="text-gray-700 font-semibold">Yến Sào Premium</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>*/}
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Navigation Arrows */}
-      <button
-        onClick={prevSlide}
-        className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 p-2 rounded-full transition-all"
-      >
-        <ChevronLeft className="h-6 w-6 text-gray-800" />
-      </button>
-      
-      <button
-        onClick={nextSlide}
-        className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 p-2 rounded-full transition-all"
-      >
-        <ChevronRight className="h-6 w-6 text-gray-800" />
-      </button>
-
-      {/* Dots */}
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-        {slides.map((_, index) => (
+      {slides.length > 1 && (
+        <>
           <button
-            key={index}
-            onClick={() => setCurrentSlide(index)}
-            className={`w-3 h-3 rounded-full transition-all ${
-              index === currentSlide ? 'bg-orange-500' : 'bg-white bg-opacity-50'
-            }`}
-          />
-        ))}
-      </div>
+            type="button"
+            onClick={prevSlide}
+            className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/80 p-2 transition-all hover:bg-white"
+          >
+            <ChevronLeft className="h-6 w-6 text-gray-800" />
+          </button>
+          <button
+            type="button"
+            onClick={nextSlide}
+            className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/80 p-2 transition-all hover:bg-white"
+          >
+            <ChevronRight className="h-6 w-6 text-gray-800" />
+          </button>
+          <div className="absolute bottom-20 left-1/2 flex -translate-x-1/2 space-x-2">
+            {slides.map((_, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => setCurrentSlide(index)}
+                className={`h-3 w-3 rounded-full transition-all ${
+                  index === currentSlide ? 'bg-orange-500' : 'bg-white/50'
+                }`}
+              />
+            ))}
+          </div>
+        </>
+      )}
 
-      {/* Features */}
-      <div className="absolute bottom-0 left-0 right-0 bg-white bg-opacity-95">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="flex items-center justify-center space-x-2">
-              <Shield className="h-5 w-5 text-orange-500" />
-              <span className="text-sm font-medium">Chất lượng đảm bảo</span>
-            </div>
-            <div className="flex items-center justify-center space-x-2">
-              <Truck className="h-5 w-5 text-orange-500" />
-              <span className="text-sm font-medium">Giao hàng toàn quốc</span>
-            </div>
-            <div className="flex items-center justify-center space-x-2">
-              <Clock className="h-5 w-5 text-orange-500" />
-              <span className="text-sm font-medium">Giao hàng trong 24h</span>
-            </div>
-            <div className="flex items-center justify-center space-x-2">
-              <Star className="h-5 w-5 text-orange-500" />
-              <span className="text-sm font-medium">100% tự nhiên</span>
-            </div>
+      <div className="absolute bottom-0 left-0 right-0 bg-white/95">
+        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-4 px-4 py-4 md:grid-cols-4">
+          <div className="flex items-center justify-center space-x-2">
+            <Shield className="h-5 w-5 text-orange-500" />
+            <span className="text-sm font-medium">Chất lượng đảm bảo</span>
+          </div>
+          <div className="flex items-center justify-center space-x-2">
+            <Truck className="h-5 w-5 text-orange-500" />
+            <span className="text-sm font-medium">Giao hàng toàn quốc</span>
+          </div>
+          <div className="flex items-center justify-center space-x-2">
+            <Clock className="h-5 w-5 text-orange-500" />
+            <span className="text-sm font-medium">Giao hàng trong 24h</span>
+          </div>
+          <div className="flex items-center justify-center space-x-2">
+            <Star className="h-5 w-5 text-orange-500" />
+            <span className="text-sm font-medium">100% tự nhiên</span>
           </div>
         </div>
       </div>
     </section>
   );
-} 
+}
