@@ -1,4 +1,9 @@
-import { CreateHero, Hero, UpdateHero } from "@/types/hero-types";
+import {
+  CreateHero,
+  Hero,
+  HeroListResponse,
+  UpdateHero,
+} from "@/types/hero-types";
 import { apiClient } from "./axios-config";
 
 const ENDPOINT = "/heros";
@@ -6,6 +11,18 @@ const ENDPOINT = "/heros";
 export const heroService = {
   getAll: async (): Promise<Hero[]> => {
     const response = await apiClient.get<Hero[]>(ENDPOINT);
+    return response.data;
+  },
+
+  getAllAdmin: async (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }): Promise<HeroListResponse> => {
+    const response = await apiClient.get<HeroListResponse>(
+      `${ENDPOINT}/admin/all`,
+      { params },
+    );
     return response.data;
   },
 

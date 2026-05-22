@@ -4,7 +4,21 @@ import type {
   OrderApiEnvelope,
   OrderResponse,
   PaginatedOrdersResponse,
+  PaymentStatusCode,
 } from "@/types/order-types";
+import type { PaymentMethodCode } from "@/lib/payment-methods";
+
+export interface AdminOrderQueryParams {
+  page?: number;
+  limit?: number;
+  status?: string;
+  search?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  paymentMethod?: PaymentMethodCode;
+  paymentStatus?: PaymentStatusCode;
+  userId?: string;
+}
 
 function unwrap(res: OrderApiEnvelope): OrderResponse {
   if (!res.success || !res.data) {
@@ -24,6 +38,13 @@ export const orderService = {
     return unwrap(data);
   },
 
+  async getOrderAdmin(id: string): Promise<OrderResponse> {
+    const { data } = await apiClient.get<OrderApiEnvelope>(
+      `/orders/admin/${id}`,
+    );
+    return unwrap(data);
+  },
+
   //All order for user
   async getMyOrders(params?: {
     page?: number;
@@ -38,18 +59,23 @@ export const orderService = {
   },
 
   // All orders for admin
-  async getAllOrders(params?: {
-    page?: number;
-    limit?: number;
-    status?: string;
-    search?: string;
-  }): Promise<PaginatedOrdersResponse> {
+  async getAllOrders(
+    params?: AdminOrderQueryParams,
+  ): Promise<PaginatedOrdersResponse> {
     const { data } = await apiClient.get<PaginatedOrdersResponse>(
       "/orders/admin/all",
       {
         params,
       },
     );
+    return data;
+  },
+
+  async exportOrdersCsv(params?: AdminOrderQueryParams): Promise<Blob> {
+    const { data } = await apiClient.get<Blob>("/orders/admin/export", {
+      params,
+      responseType: "blob",
+    });
     return data;
   },
 
@@ -64,8 +90,30 @@ export const orderService = {
     return unwrap(data);
   },
 
+  async updatePaymentAdmin(
+    id: string,
+    body: { status: string },
+  ): Promise<OrderResponse> {
+    const { data } = await apiClient.patch<OrderApiEnvelope>(
+      `/orders/admin/${id}/payment`,
+      body,
+    );
+    return unwrap(data);
+  },
+
   async cancelOrder(id: string): Promise<OrderResponse> {
     const { data } = await apiClient.delete<OrderApiEnvelope>(`/orders/${id}`);
+    return unwrap(data);
+  },
+
+  async refundOrderAdmin(
+    id: string,
+    body?: { note?: string },
+  ): Promise<OrderResponse> {
+    const { data } = await apiClient.post<OrderApiEnvelope>(
+      `/orders/admin/${id}/refund`,
+      body ?? {},
+    );
     return unwrap(data);
   },
 };

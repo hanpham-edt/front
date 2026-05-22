@@ -306,6 +306,7 @@ export default function AdminSettingsPage() {
                     ['bankTransferEnabled', 'Chuyển khoản ngân hàng'],
                     ['creditCardEnabled', 'Thẻ tín dụng'],
                     ['paypalEnabled', 'PayPal'],
+                    ['momoEnabled', 'Momo'],
                   ] as const
                 ).map(([key, label]) => (
                   <div key={key} className="flex items-center justify-between">

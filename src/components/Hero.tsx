@@ -15,6 +15,8 @@ const FALLBACK_SLIDES: Hero[] = [
     description: 'Chất lượng đảm bảo, nguồn gốc rõ ràng.',
     imageUrl: '/images/hero-1.jpg',
     ctaLink: '/products',
+    isPublished: true,
+    publishedAt: null,
     createdAt: '',
     updatedAt: '',
   },

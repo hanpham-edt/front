@@ -7,6 +7,8 @@ import { Minus, Plus, ShieldCheck, Truck, Undo2 } from "lucide-react";
 import { useAppDispatch } from "@/store";
 import { addToCart } from "@/store/slices/cartSlice";
 import { useRouter } from "next/navigation";
+import ArticleHtmlContent from "@/components/articles/ArticleHtmlContent";
+import { isHtmlContent } from "@/lib/html-content";
 
 export default function ProductDetail({ product }: { product: Product }) {
   const dispatch = useAppDispatch();
@@ -26,10 +28,14 @@ export default function ProductDetail({ product }: { product: Product }) {
   const isInStock = product.stock > 0;
   const maxQty = Math.max(1, product.stock || 1);
 
+  const [activeImage, setActiveImage] = useState(0);
+
   const images = useMemo(() => {
-    const url = (product.imageUrl || "").trim();
-    return url ? [url] : [];
-  }, [product.imageUrl]);
+    const list =
+      product.imageUrls?.filter((u) => u?.trim()) ??
+      (product.imageUrl?.trim() ? [product.imageUrl.trim()] : []);
+    return list;
+  }, [product.imageUrl, product.imageUrls]);
 
   const handleAddToCart = () => {
     dispatch(addToCart({ product, quantity }));
@@ -49,9 +55,9 @@ export default function ProductDetail({ product }: { product: Product }) {
             <div className="space-y-4">
               <div className="rounded-lg border border-gray-100 bg-white overflow-hidden">
                 <div className="aspect-square relative bg-gradient-to-br from-yellow-50 to-orange-50">
-                  {images[0] ? (
+                  {images[activeImage] ? (
                     <Image
-                      src={images[0]}
+                      src={images[activeImage]}
                       alt={product.name}
                       fill
                       priority
@@ -67,11 +73,16 @@ export default function ProductDetail({ product }: { product: Product }) {
               </div>
 
               <div className="grid grid-cols-4 gap-3">
-                {(images.length ? images : [null]).slice(0, 4).map((img, idx) => (
+                {(images.length ? images : [null]).slice(0, 5).map((img, idx) => (
                   <button
                     key={idx}
                     type="button"
-                    className="relative aspect-square overflow-hidden rounded-md border border-gray-200 bg-gray-50"
+                    onClick={() => img && setActiveImage(idx)}
+                    className={`relative aspect-square overflow-hidden rounded-md border bg-gray-50 ${
+                      activeImage === idx
+                        ? "border-orange-500 ring-2 ring-orange-200"
+                        : "border-gray-200"
+                    }`}
                     aria-label={`Ảnh ${idx + 1}`}
                   >
                     {img ? (
@@ -259,10 +270,18 @@ export default function ProductDetail({ product }: { product: Product }) {
 
             <div className="mt-6 rounded-lg border border-gray-100 bg-white p-6">
               {activeTab === "description" ? (
-                <div className="prose prose-sm max-w-none">
-                  <p className="text-gray-700 whitespace-pre-line">
-                    {product.description || "Chưa có mô tả cho sản phẩm này."}
-                  </p>
+                <div>
+                  {!product.description ? (
+                    <p className="text-gray-700">
+                      Chưa có mô tả cho sản phẩm này.
+                    </p>
+                  ) : isHtmlContent(product.description) ? (
+                    <ArticleHtmlContent html={product.description} />
+                  ) : (
+                    <p className="text-gray-700 whitespace-pre-line">
+                      {product.description}
+                    </p>
+                  )}
                 </div>
               ) : null}
 

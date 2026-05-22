@@ -1,22 +1,35 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
-import { Search, Eye, Edit, Trash2, XCircle } from "lucide-react";
-import Link from "next/link";
+import {
+  Search,
+  Eye,
+  CheckCircle,
+  Trash2,
+  XCircle,
+  Loader2,
+} from "lucide-react";
+import AdminPagination from "@/components/admin/AdminPagination";
 import { useContacts } from "@/hooks/useContact";
 import { Contact } from "@/types/contact-types";
 import { contactService } from "@/services/api/contactService";
+
+function formatContactDate(value: string | null | undefined): string {
+  if (!value) return "—";
+  return new Date(value).toLocaleString("vi-VN");
+}
 
 export default function AdminContactPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [status, setStatus] = useState<"all" | "active" | "inactive">("all");
-  const { contacts, getContacts } = useContacts();
+  const { contacts, getContacts, meta, isLoading } = useContacts();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [contactToDelete, setContactToDelete] = useState<string | null>(null);
   const [showContactModal, setShowContactModal] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
-  const limit = 12;
+  const [markingReplied, setMarkingReplied] = useState(false);
+  const [limit, setLimit] = useState(12);
 
   useEffect(() => {
     getContacts({
@@ -44,12 +57,50 @@ export default function AdminContactPage() {
     setShowDeleteModal(true);
   };
 
+  const reloadContacts = useCallback(() => {
+    void getContacts({
+      page,
+      limit,
+      search: debouncedSearch,
+      status: status === "all" ? undefined : status === "active",
+    });
+  }, [getContacts, page, limit, debouncedSearch, status]);
+
   const confirmDelete = async () => {
     if (!contactToDelete) return;
-    console.log("Deleting contact:", contactToDelete);
     await contactService.deleteContact(contactToDelete);
     setShowDeleteModal(false);
     setContactToDelete(null);
+    if (contacts.length === 1 && page > 1) {
+      setPage(page - 1);
+    } else {
+      reloadContacts();
+    }
+  };
+
+  const handleMarkReplied = async (contact: Contact) => {
+    if (contact.status) return;
+    setMarkingReplied(true);
+    try {
+      await contactService.updateContact(contact.id, { status: true });
+      getContacts({
+        page,
+        limit,
+        search: debouncedSearch,
+        status: status === "all" ? undefined : status === "active",
+      });
+      if (selectedContact?.id === contact.id) {
+        setSelectedContact({
+          ...contact,
+          status: true,
+          repliedAt: new Date().toISOString(),
+        });
+      }
+    } catch {
+      alert("Không cập nhật được trạng thái liên hệ.");
+    } finally {
+      setMarkingReplied(false);
+    }
   };
 
   const handleViewUser = (contacts: Contact) => {
@@ -110,12 +161,26 @@ export default function AdminContactPage() {
 
       {/* Contact Table */}
       <div className="bg-white shadow rounded-lg overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="flex items-center justify-between gap-3 border-b border-gray-200 px-6 py-4">
           <h3 className="text-lg font-medium text-gray-900">
-            Liên Hệ({contacts.length})
+            Liên hệ ({meta.total})
           </h3>
+          {meta.totalPages > 0 ? (
+            <p className="text-sm text-gray-600">
+              Trang {meta.page} / {meta.totalPages}
+            </p>
+          ) : null}
         </div>
 
+        {isLoading ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-10 w-10 animate-spin text-orange-500" />
+          </div>
+        ) : contacts.length === 0 ? (
+          <div className="py-16 text-center text-gray-500">
+            Không tìm thấy liên hệ phù hợp.
+          </div>
+        ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -139,10 +204,12 @@ export default function AdminContactPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Trạng thái
                 </th>
-                {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Ngày tạo
-                </th> */}
-
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Ngày gửi
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Ngày trả lời
+                </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Thao tác
                 </th>
@@ -168,31 +235,41 @@ export default function AdminContactPage() {
                     {contact.content}
                   </td>
                   <td
-                    className={`px-6 py-4 whitespace-nowrap text-sm text-gray-900 ${
-                      contact.status ? "text-green-800" : " text-red-800"
+                    className={`px-6 py-4 whitespace-nowrap text-sm ${
+                      contact.status ? "text-green-800" : "text-red-800"
                     }`}
                   >
                     {contact.status ? "Đã trả lời" : "Chưa trả lời"}
                   </td>
-                  {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {contact.createdAt
-                      ? new Date(contact.createdAt).toLocaleString("vi-VN")
-                      : ""}
-                  </td> */}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    {formatContactDate(contact.createdAt)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    {formatContactDate(contact.repliedAt)}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">
                       <button
+                        type="button"
                         onClick={() => handleViewUser(contact)}
                         className="text-blue-600 hover:text-blue-900"
+                        title="Xem chi tiết"
                       >
                         <Eye className="h-4 w-4" />
                       </button>
-                      <Link href={`/admin/categories/${contact.id}/edit`}>
-                        <button className="text-orange-600 hover:text-orange-900">
-                          <Edit className="h-4 w-4" />
+                      {!contact.status ? (
+                        <button
+                          type="button"
+                          onClick={() => void handleMarkReplied(contact)}
+                          disabled={markingReplied}
+                          className="text-green-600 hover:text-green-900 disabled:opacity-50"
+                          title="Đánh dấu đã trả lời"
+                        >
+                          <CheckCircle className="h-4 w-4" />
                         </button>
-                      </Link>
+                      ) : null}
                       <button
+                        type="button"
                         onClick={() => handleDelete(contact.id)}
                         className="text-red-600 hover:text-red-900"
                       >
@@ -205,6 +282,19 @@ export default function AdminContactPage() {
             </tbody>
           </table>
         </div>
+        )}
+
+        <AdminPagination
+          page={meta.page}
+          totalPages={meta.totalPages}
+          total={meta.total}
+          limit={meta.limit}
+          onPageChange={setPage}
+          onLimitChange={(next) => {
+            setLimit(next);
+            setPage(1);
+          }}
+        />
       </div>
 
       {/* Contact Detail Modal */}
@@ -234,12 +324,65 @@ export default function AdminContactPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Nội dung liên hệ
+                  Chủ đề
+                </label>
+                <p className="text-sm text-gray-900">{selectedContact.topic}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Số điện thoại
                 </label>
                 <p className="text-sm text-gray-900">
+                  {selectedContact.phone || "—"}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Nội dung liên hệ
+                </label>
+                <p className="text-sm text-gray-900 whitespace-pre-wrap">
                   {selectedContact.content}
                 </p>
               </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Ngày gửi
+                  </label>
+                  <p className="text-sm text-gray-900">
+                    {formatContactDate(selectedContact.createdAt)}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Ngày trả lời
+                  </label>
+                  <p className="text-sm text-gray-900">
+                    {formatContactDate(selectedContact.repliedAt)}
+                  </p>
+                </div>
+              </div>
+              <div>
+                <span
+                  className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    selectedContact.status
+                      ? "bg-green-100 text-green-800"
+                      : "bg-red-100 text-red-800"
+                  }`}
+                >
+                  {selectedContact.status ? "Đã trả lời" : "Chưa trả lời"}
+                </span>
+              </div>
+              {!selectedContact.status ? (
+                <button
+                  type="button"
+                  disabled={markingReplied}
+                  onClick={() => void handleMarkReplied(selectedContact)}
+                  className="w-full rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                >
+                  {markingReplied ? "Đang lưu..." : "Đánh dấu đã trả lời"}
+                </button>
+              ) : null}
             </div>
           </div>
         </div>

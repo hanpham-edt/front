@@ -29,6 +29,7 @@ export default function EditHeroPage() {
           description: hero.description ?? "",
           imageUrl: hero.imageUrl,
           ctaLink: hero.ctaLink,
+          isPublished: hero.isPublished,
         });
       } catch {
         setLoadError("Không tải được slide Hero.");

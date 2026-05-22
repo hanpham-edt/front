@@ -1,15 +1,26 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { Search, Eye, Edit, Trash2, User, XCircle } from "lucide-react";
+import {
+  Search,
+  Eye,
+  Edit,
+  Trash2,
+  User,
+  XCircle,
+  ShoppingCart,
+  Loader2,
+} from "lucide-react";
 import Link from "next/link";
 import { useUsers } from "@/hooks/useUsers";
 import { Users } from "@/types/user-types";
 import { UserService } from "@/services/api/UserService";
+import AdminPagination from "@/components/admin/AdminPagination";
+import UserOrderHistory from "@/components/admin/UserOrderHistory";
 
 const roleOptions = [
   { value: "all", label: "Tất cả" },
-  { value: "customer", label: "Khách hàng" },
-  { value: "admin", label: "Quản trị viên" },
+  { value: "USER", label: "Khách hàng" },
+  { value: "ADMIN", label: "Quản trị viên" },
 ];
 
 const statusOptions = [
@@ -23,22 +34,28 @@ export default function AdminUsersPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
   const [showUserModal, setShowUserModal] = useState(false);
-  const { users, getUsers } = useUsers();
+  const { users, getUsers, meta, isLoading } = useUsers();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [status, setStatus] = useState<"all" | "active" | "inactive">("all");
   const [selectedUser, setSelectedUser] = useState<Users | null>(null);
-  const limit = 12;
+  const [limit, setLimit] = useState(12);
+
+  const fetchParams = {
+    page,
+    limit,
+    search: debouncedSearch,
+    isActive: status === "all" ? undefined : status === "active",
+    role:
+      selectedRole === "all"
+        ? undefined
+        : (selectedRole as "USER" | "ADMIN"),
+  };
 
   useEffect(() => {
-    getUsers({
-      page,
-      limit,
-      search: debouncedSearch,
-      isActive: status === "all" ? undefined : status === "active",
-    });
-  }, [getUsers, page, limit, debouncedSearch, status]);
+    void getUsers(fetchParams);
+  }, [getUsers, page, limit, debouncedSearch, status, selectedRole]);
 
   const handleSearch = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,13 +76,21 @@ export default function AdminUsersPage() {
 
   const confirmDelete = async () => {
     try {
-      if (!userToDelete) return null;
+      if (!userToDelete) return;
       await UserService.deleteUser(userToDelete);
+      setShowDeleteModal(false);
+      setUserToDelete(null);
+      const nextPage =
+        users.length === 1 && page > 1 ? page - 1 : page;
+      if (nextPage !== page) {
+        setPage(nextPage);
+      } else {
+        void getUsers({ ...fetchParams, page: nextPage });
+      }
     } catch (error) {
-      throw new Error("Không thể xóa users nay" + error);
+      alert("Không thể xóa người dùng này.");
+      console.error(error);
     }
-    setShowDeleteModal(false);
-    setUserToDelete(null);
   };
 
   const handleViewUser = (users: Users) => {
@@ -119,7 +144,10 @@ export default function AdminUsersPage() {
             </label>
             <select
               value={selectedRole}
-              onChange={(e) => setSelectedRole(e.target.value)}
+              onChange={(e) => {
+                setSelectedRole(e.target.value);
+                setPage(1);
+              }}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
             >
               {roleOptions.map((option) => (
@@ -154,12 +182,26 @@ export default function AdminUsersPage() {
 
       {/* Users Table */}
       <div className="bg-white shadow rounded-lg overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between gap-3">
           <h3 className="text-lg font-medium text-gray-900">
-            Người dùng {/* ({userData}) */}
+            Người dùng ({meta.total})
           </h3>
+          {meta.totalPages > 0 ? (
+            <p className="text-sm text-gray-600">
+              Trang {meta.page} / {meta.totalPages}
+            </p>
+          ) : null}
         </div>
 
+        {isLoading ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-10 w-10 animate-spin text-orange-500" />
+          </div>
+        ) : users.length === 0 ? (
+          <div className="py-16 text-center text-gray-500">
+            Không tìm thấy người dùng phù hợp.
+          </div>
+        ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -255,8 +297,23 @@ export default function AdminUsersPage() {
                       >
                         <Eye className="h-4 w-4" />
                       </button>
+                      <Link
+                        href={`/admin/orders?userId=${encodeURIComponent(user.id)}`}
+                        title="Xem đơn hàng"
+                      >
+                        <button
+                          type="button"
+                          className="text-orange-600 hover:text-orange-900"
+                        >
+                          <ShoppingCart className="h-4 w-4" />
+                        </button>
+                      </Link>
                       <Link href={`/admin/users/${user.id}/edit`}>
-                        <button className="text-orange-600 hover:text-orange-900">
+                        <button
+                          type="button"
+                          className="text-orange-600 hover:text-orange-900"
+                          title="Sửa người dùng"
+                        >
                           <Edit className="h-4 w-4" />
                         </button>
                       </Link>
@@ -273,6 +330,19 @@ export default function AdminUsersPage() {
             </tbody>
           </table>
         </div>
+        )}
+
+        <AdminPagination
+          page={meta.page}
+          totalPages={meta.totalPages}
+          total={meta.total}
+          limit={meta.limit}
+          onPageChange={setPage}
+          onLimitChange={(next) => {
+            setLimit(next);
+            setPage(1);
+          }}
+        />
       </div>
 
       {/* User Detail Modal */}
@@ -316,7 +386,7 @@ export default function AdminUsersPage() {
                     Vai trò
                   </label>
                   <p className="text-sm text-gray-900">
-                    {selectedUser.role === "admin"
+                    {selectedUser.role === "ADMIN"
                       ? "Quản trị viên"
                       : "Khách hàng"}
                   </p>
@@ -340,6 +410,11 @@ export default function AdminUsersPage() {
                   </p>
                 </div>
               </div>
+
+              <UserOrderHistory
+                userId={selectedUser.id}
+                userEmail={selectedUser.email}
+              />
             </div>
           </div>
         </div>

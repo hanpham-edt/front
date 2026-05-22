@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import {
   CheckCircle,
   Clock,
+  Download,
   Edit,
   Eye,
   Filter,
@@ -15,15 +17,48 @@ import {
   Truck,
   XCircle,
 } from "lucide-react";
-import { orderService } from "@/services/api/orderService";
+import AdminPagination from "@/components/admin/AdminPagination";
+import {
+  orderService,
+  type AdminOrderQueryParams,
+} from "@/services/api/orderService";
+import type { PaymentMethodCode } from "@/lib/payment-methods";
 import type {
   OrderResponse,
   OrderStatusCode,
   PaginatedOrdersResponse,
+  PaymentStatusCode,
 } from "@/types/order-types";
 import { formatOrderStatus } from "@/lib/order-status";
+import {
+  getPaymentMethodIcon,
+  getPaymentMethodLabel,
+  getPaymentMethodShortLabel,
+  getPaymentStatusClass,
+  getPaymentStatusLabel,
+  needsPaymentConfirmation,
+  PAYMENT_STATUS_OPTIONS,
+} from "@/lib/payment-methods";
 
-const PAGE_SIZE = 10;
+const PAYMENT_METHOD_FILTER: { value: "" | PaymentMethodCode; label: string }[] =
+  [
+    { value: "", label: "Tất cả PT" },
+    { value: "cod", label: "COD" },
+    { value: "bank_transfer", label: "Chuyển khoản" },
+    { value: "credit_card", label: "Thẻ" },
+    { value: "momo", label: "MoMo" },
+  ];
+
+const PAYMENT_STATUS_FILTER: {
+  value: "" | PaymentStatusCode;
+  label: string;
+}[] = [
+  { value: "", label: "Tất cả TT" },
+  { value: "PENDING", label: "Chờ thanh toán" },
+  { value: "COMPLETED", label: "Đã thanh toán" },
+  { value: "FAILED", label: "Thất bại" },
+  { value: "REFUNDED", label: "Hoàn tiền" },
+];
 
 const STATUS_OPTIONS: { value: "" | OrderStatusCode; label: string }[] = [
   { value: "", label: "Tất cả" },
@@ -64,18 +99,29 @@ function parseCustomerLine(shippingAddress: string) {
   return first || "—";
 }
 
-export default function AdminOrdersPage() {
+function AdminOrdersContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const filterUserId = searchParams.get("userId")?.trim() ?? "";
+
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<"" | OrderStatusCode>("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"" | PaymentMethodCode>("");
+  const [paymentStatus, setPaymentStatus] = useState<"" | PaymentStatusCode>("");
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [payload, setPayload] = useState<PaginatedOrdersResponse | null>(null);
 
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<OrderResponse | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [updatingPayment, setUpdatingPayment] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(searchTerm.trim()), 350);
@@ -84,18 +130,47 @@ export default function AdminOrdersPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [selectedStatus, debouncedSearch]);
+  }, [
+    selectedStatus,
+    debouncedSearch,
+    dateFrom,
+    dateTo,
+    paymentMethod,
+    paymentStatus,
+    filterUserId,
+    limit,
+  ]);
+
+  const buildQueryParams = useCallback(
+    (): AdminOrderQueryParams => ({
+      page,
+      limit,
+      ...(selectedStatus ? { status: selectedStatus } : {}),
+      ...(debouncedSearch ? { search: debouncedSearch } : {}),
+      ...(dateFrom ? { dateFrom } : {}),
+      ...(dateTo ? { dateTo } : {}),
+      ...(paymentMethod ? { paymentMethod } : {}),
+      ...(paymentStatus ? { paymentStatus } : {}),
+      ...(filterUserId ? { userId: filterUserId } : {}),
+    }),
+    [
+      page,
+      limit,
+      selectedStatus,
+      debouncedSearch,
+      dateFrom,
+      dateTo,
+      paymentMethod,
+      paymentStatus,
+      filterUserId,
+    ],
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await orderService.getAllOrders({
-        page,
-        limit: PAGE_SIZE,
-        ...(selectedStatus ? { status: selectedStatus } : {}),
-        ...(debouncedSearch ? { search: debouncedSearch } : {}),
-      });
+      const res = await orderService.getAllOrders(buildQueryParams());
       setPayload(res);
     } catch (e: unknown) {
       let msg = "Không tải được danh sách đơn hàng.";
@@ -110,7 +185,40 @@ export default function AdminOrdersPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, selectedStatus, debouncedSearch]);
+  }, [buildQueryParams]);
+
+  const handleExportCsv = async () => {
+    setExporting(true);
+    try {
+      const params = buildQueryParams();
+      const { page: exportPage, limit: exportLimit, ...exportParams } = params;
+      void exportPage;
+      void exportLimit;
+      const blob = await orderService.exportOrdersCsv(exportParams);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `don-hang-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert("Không xuất được file CSV. Vui lòng thử lại.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setDebouncedSearch("");
+    setSelectedStatus("");
+    setDateFrom("");
+    setDateTo("");
+    setPaymentMethod("");
+    setPaymentStatus("");
+    setPage(1);
+    router.replace("/admin/orders");
+  };
 
   useEffect(() => {
     void load();
@@ -118,12 +226,45 @@ export default function AdminOrdersPage() {
 
   const totalPages = useMemo(() => {
     if (!payload) return 1;
-    return Math.max(1, Math.ceil(payload.total / PAGE_SIZE));
+    return Math.max(1, Math.ceil(payload.total / payload.limit));
   }, [payload]);
 
   const handleViewOrder = (order: OrderResponse) => {
     setSelectedOrder(order);
     setShowOrderModal(true);
+  };
+
+  const syncOrderInList = (updated: OrderResponse) => {
+    setSelectedOrder(updated);
+    setPayload((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        data: prev.data.map((o) => (o.id === updated.id ? updated : o)),
+      };
+    });
+  };
+
+  const handleUpdatePaymentStatus = async (next: PaymentStatusCode) => {
+    if (!selectedOrder) return;
+    setUpdatingPayment(true);
+    try {
+      const updated = await orderService.updatePaymentAdmin(selectedOrder.id, {
+        status: next,
+      });
+      syncOrderInList(updated);
+    } catch (e: unknown) {
+      let msg = "Không cập nhật được trạng thái thanh toán.";
+      if (axios.isAxiosError(e)) {
+        const data = e.response?.data as { message?: string | string[] } | undefined;
+        const m = data?.message;
+        if (typeof m === "string") msg = m;
+        else if (Array.isArray(m)) msg = m.join(", ");
+      }
+      alert(msg);
+    } finally {
+      setUpdatingPayment(false);
+    }
   };
 
   const handleUpdateStatus = async (next: OrderStatusCode) => {
@@ -133,14 +274,7 @@ export default function AdminOrdersPage() {
       const updated = await orderService.updateOrderAdmin(selectedOrder.id, {
         status: next,
       });
-      setSelectedOrder(updated);
-      setPayload((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          data: prev.data.map((o) => (o.id === updated.id ? updated : o)),
-        };
-      });
+      syncOrderInList(updated);
     } catch (e: unknown) {
       let msg = "Không cập nhật được trạng thái.";
       if (axios.isAxiosError(e)) {
@@ -162,10 +296,23 @@ export default function AdminOrdersPage() {
         <p className="text-gray-600">Quản lý tất cả đơn hàng của khách hàng</p>
       </div>
 
+      {filterUserId ? (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900">
+          <span>Đang lọc đơn theo một khách hàng cụ thể.</span>
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="font-medium text-orange-700 hover:underline"
+          >
+            Xóa lọc khách
+          </button>
+        </div>
+      ) : null}
+
       {/* Filters */}
       <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="lg:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Tìm kiếm
             </label>
@@ -176,14 +323,14 @@ export default function AdminOrdersPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                placeholder="Tìm theo mã đơn..."
+                placeholder="Mã đơn, email khách..."
               />
             </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Trạng thái
+              Trạng thái đơn
             </label>
             <select
               value={selectedStatus}
@@ -200,14 +347,96 @@ export default function AdminOrdersPage() {
             </select>
           </div>
 
-          <div className="flex items-end">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Phương thức thanh toán
+            </label>
+            <select
+              value={paymentMethod}
+              onChange={(e) =>
+                setPaymentMethod(e.target.value as "" | PaymentMethodCode)
+              }
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            >
+              {PAYMENT_METHOD_FILTER.map((option) => (
+                <option key={option.value || "all"} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Trạng thái thanh toán
+            </label>
+            <select
+              value={paymentStatus}
+              onChange={(e) =>
+                setPaymentStatus(e.target.value as "" | PaymentStatusCode)
+              }
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            >
+              {PAYMENT_STATUS_FILTER.map((option) => (
+                <option key={option.value || "all"} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Từ ngày
+            </label>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Đến ngày
+            </label>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            />
+          </div>
+
+          <div className="flex items-end gap-2 lg:col-span-2">
             <button
               type="button"
               onClick={() => void load()}
-              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center"
+              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center"
             >
               <Filter className="h-4 w-4 mr-2" />
               Làm mới
+            </button>
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="px-4 py-2 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm"
+            >
+              Xóa lọc
+            </button>
+            <button
+              type="button"
+              disabled={exporting}
+              onClick={() => void handleExportCsv()}
+              className="flex-1 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center disabled:opacity-50"
+            >
+              {exporting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
+              Xuất CSV
             </button>
           </div>
         </div>
@@ -238,10 +467,11 @@ export default function AdminOrdersPage() {
           </div>
         ) : !payload?.data.length ? (
           <div className="text-center py-16 px-4 text-gray-600">
-            Không có đơn hàng nào.
+            {(payload?.total ?? 0) > 0
+              ? "Không có đơn trên trang này."
+              : "Không có đơn hàng nào."}
           </div>
         ) : (
-          <>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -253,10 +483,13 @@ export default function AdminOrdersPage() {
                       Người nhận
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Thanh toán
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Tổng tiền
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Trạng thái
+                      Trạng thái đơn
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Ngày tạo
@@ -271,6 +504,7 @@ export default function AdminOrdersPage() {
                     const key = (order.status as OrderStatusCode) || "PENDING";
                     const badge = STATUS_BADGE[key] ?? STATUS_BADGE.PENDING;
                     const StatusIcon = badge.icon;
+                    const PaymentIcon = getPaymentMethodIcon(order.paymentMethod);
                     return (
                       <tr key={order.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -283,6 +517,19 @@ export default function AdminOrdersPage() {
                           <div className="text-sm font-medium text-gray-900 truncate max-w-[260px]">
                             {parseCustomerLine(order.shippingAddress)}
                           </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
+                            <PaymentIcon className="h-4 w-4 shrink-0 text-orange-500" />
+                            {getPaymentMethodShortLabel(order.paymentMethod)}
+                          </div>
+                          {order.paymentStatus ? (
+                            <span
+                              className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${getPaymentStatusClass(order.paymentStatus)}`}
+                            >
+                              {getPaymentStatusLabel(order.paymentStatus)}
+                            </span>
+                          ) : null}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
@@ -330,34 +577,21 @@ export default function AdminOrdersPage() {
                 </tbody>
               </table>
             </div>
-
-            {totalPages > 1 ? (
-              <div className="flex items-center justify-between border-t border-gray-100 px-6 py-4">
-                <p className="text-sm text-gray-600">
-                  Trang {payload.page} / {totalPages}
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    disabled={page <= 1}
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    className="rounded-md border border-gray-200 px-3 py-1.5 text-sm disabled:opacity-40 hover:bg-gray-50"
-                  >
-                    Trước
-                  </button>
-                  <button
-                    type="button"
-                    disabled={page >= totalPages}
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    className="rounded-md border border-gray-200 px-3 py-1.5 text-sm disabled:opacity-40 hover:bg-gray-50"
-                  >
-                    Sau
-                  </button>
-                </div>
-              </div>
-            ) : null}
-          </>
         )}
+
+        {!loading && payload && payload.total > 0 ? (
+          <AdminPagination
+            page={payload.page}
+            totalPages={totalPages}
+            total={payload.total}
+            limit={payload.limit}
+            onPageChange={setPage}
+            onLimitChange={(next) => {
+              setLimit(next);
+              setPage(1);
+            }}
+          />
+        ) : null}
       </div>
 
       {/* Order Detail Modal */}
@@ -379,29 +613,177 @@ export default function AdminOrdersPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-medium text-gray-900 mb-3">
-                  Thông tin đơn hàng
-                </h4>
-                <div className="space-y-2 text-sm">
-                  <div>
-                    <span className="font-medium">Mã đơn:</span>{" "}
-                    <span className="font-mono">{selectedOrder.orderNumber}</span>
+              <div className="space-y-6">
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-3">
+                    Thông tin đơn hàng
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <span className="font-medium">Mã đơn:</span>{" "}
+                      <span className="font-mono">{selectedOrder.orderNumber}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium">Tạo lúc:</span>{" "}
+                      {formatDate(selectedOrder.createdAt)}
+                    </div>
+                    <div>
+                      <span className="font-medium">Trạng thái đơn:</span>{" "}
+                      {formatOrderStatus(selectedOrder.status)}
+                    </div>
+                    <div>
+                      <span className="font-medium">Địa chỉ giao hàng:</span>
+                      <p className="text-gray-600 mt-1 whitespace-pre-wrap">
+                        {selectedOrder.shippingAddress || "—"}
+                      </p>
+                    </div>
+                    {selectedOrder.trackingNumber ? (
+                      <div>
+                        <span className="font-medium">Mã vận đơn:</span>{" "}
+                        <span className="font-mono text-purple-700">
+                          {selectedOrder.trackingNumber}
+                        </span>
+                      </div>
+                    ) : null}
+                    {selectedOrder.notes ? (
+                      <div>
+                        <span className="font-medium">Ghi chú:</span>
+                        <p className="text-gray-600 mt-1 whitespace-pre-wrap">
+                          {selectedOrder.notes}
+                        </p>
+                      </div>
+                    ) : null}
                   </div>
-                  <div>
-                    <span className="font-medium">Tạo lúc:</span>{" "}
-                    {formatDate(selectedOrder.createdAt)}
+                </div>
+
+                <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                  <h4 className="font-medium text-gray-900 mb-3">
+                    Thông tin thanh toán
+                  </h4>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex items-start gap-2">
+                      {(() => {
+                        const Icon = getPaymentMethodIcon(
+                          selectedOrder.paymentMethod,
+                        );
+                        return (
+                          <Icon className="mt-0.5 h-5 w-5 shrink-0 text-orange-500" />
+                        );
+                      })()}
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          {getPaymentMethodLabel(selectedOrder.paymentMethod)}
+                        </p>
+                        <p className="text-gray-500">
+                          Số tiền:{" "}
+                          <span className="font-semibold text-orange-600">
+                            {formatPrice(selectedOrder.total)}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-700">
+                        Trạng thái thanh toán:
+                      </span>{" "}
+                      {selectedOrder.paymentStatus ? (
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${getPaymentStatusClass(selectedOrder.paymentStatus)}`}
+                        >
+                          {getPaymentStatusLabel(selectedOrder.paymentStatus)}
+                        </span>
+                      ) : (
+                        <span className="text-gray-500">—</span>
+                      )}
+                    </div>
+                    {selectedOrder.paymentMethod === "bank_transfer" ? (
+                      <p className="text-xs text-blue-800 bg-blue-50 rounded-md px-3 py-2">
+                        Khách chọn chuyển khoản — xác nhận khi đã nhận tiền, ghi
+                        nội dung chuyển khoản là mã đơn{" "}
+                        <span className="font-mono font-semibold">
+                          {selectedOrder.orderNumber}
+                        </span>
+                        .
+                      </p>
+                    ) : null}
+                    {selectedOrder.paymentMethod === "momo" ? (
+                      <p className="text-xs text-pink-800 bg-pink-50 rounded-md px-3 py-2">
+                        Khách chọn MoMo — đối chiếu giao dịch theo mã đơn{" "}
+                        <span className="font-mono font-semibold">
+                          {selectedOrder.orderNumber}
+                        </span>
+                        .
+                      </p>
+                    ) : null}
+                    {selectedOrder.paymentMethod === "credit_card" ? (
+                      <p className="text-xs text-indigo-800 bg-indigo-50 rounded-md px-3 py-2">
+                        Khách chọn thẻ — liên hệ hướng dẫn thanh toán qua cổng thẻ.
+                      </p>
+                    ) : null}
+                    {selectedOrder.paymentMethod === "cod" ? (
+                      <p className="text-xs text-amber-800 bg-amber-50 rounded-md px-3 py-2">
+                        Khách thanh toán tiền mặt khi nhận hàng (COD).
+                      </p>
+                    ) : null}
+
+                    {selectedOrder.paymentStatus &&
+                    needsPaymentConfirmation(selectedOrder.paymentMethod) &&
+                    selectedOrder.paymentStatus === "PENDING" ? (
+                      <button
+                        type="button"
+                        disabled={updatingPayment}
+                        onClick={() => void handleUpdatePaymentStatus("COMPLETED")}
+                        className="w-full rounded-md bg-green-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+                      >
+                        {updatingPayment
+                          ? "Đang cập nhật..."
+                          : "Xác nhận đã nhận tiền"}
+                      </button>
+                    ) : null}
                   </div>
-                  <div>
-                    <span className="font-medium">Trạng thái:</span>{" "}
-                    {formatOrderStatus(selectedOrder.status)}
-                  </div>
-                  <div>
-                    <span className="font-medium">Địa chỉ giao hàng:</span>
-                    <p className="text-gray-600 mt-1 whitespace-pre-wrap">
-                      {selectedOrder.shippingAddress || "—"}
+
+                  {selectedOrder.paymentStatus ? (
+                    <div className="mt-4 border-t border-gray-200 pt-4">
+                      <p className="mb-2 text-xs font-medium text-gray-600">
+                        Cập nhật trạng thái thanh toán
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {PAYMENT_STATUS_OPTIONS.map((s) => (
+                          <button
+                            key={s.value}
+                            type="button"
+                            disabled={
+                              updatingPayment ||
+                              selectedOrder.paymentStatus === s.value
+                            }
+                            onClick={() =>
+                              void handleUpdatePaymentStatus(s.value)
+                            }
+                            className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                              selectedOrder.paymentStatus === s.value
+                                ? "bg-orange-500 text-white"
+                                : "bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50"
+                            } disabled:opacity-50`}
+                          >
+                            {s.label}
+                          </button>
+                        ))}
+                      </div>
+                      {selectedOrder.paymentStatus === "COMPLETED" &&
+                      selectedOrder.status === "PROCESSING" &&
+                      needsPaymentConfirmation(selectedOrder.paymentMethod) ? (
+                        <p className="mt-2 text-xs text-green-700">
+                          Đơn đã chuyển sang trạng thái &quot;Đang xử lý&quot; tự
+                          động.
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-xs text-gray-500">
+                      Đơn cũ chưa có bản ghi thanh toán — không thể cập nhật tại
+                      đây.
                     </p>
-                  </div>
+                  )}
                 </div>
               </div>
 
@@ -441,6 +823,15 @@ export default function AdminOrdersPage() {
               </div>
             </div>
 
+            <div className="mt-6 flex justify-end border-t pt-4">
+              <Link
+                href={`/admin/orders/${selectedOrder.id}/edit`}
+                className="rounded-md bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600"
+              >
+                Mở trang sửa đơn
+              </Link>
+            </div>
+
             <div className="mt-6 pt-6 border-t">
               <h4 className="font-medium text-gray-900 mb-3">
                 Cập nhật trạng thái
@@ -467,5 +858,19 @@ export default function AdminOrdersPage() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+export default function AdminOrdersPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center py-24">
+          <Loader2 className="h-10 w-10 animate-spin text-orange-500" />
+        </div>
+      }
+    >
+      <AdminOrdersContent />
+    </Suspense>
   );
 }

@@ -2,21 +2,30 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Minus, Plus, Trash2 } from "lucide-react";
+import { useMemo } from "react";
 import { useAppDispatch } from "@/store";
 import { useSelector } from "react-redux";
 import type { IRootState } from "@/store";
 import { removeFromCart, setQuantity } from "@/store/slices/cartSlice";
-
-const SHIPPING_FLAT = 50_000;
-const FREE_SHIPPING_FROM = 2_000_000;
+import { usePublicSettings } from "@/hooks/usePublicSettings";
+import { getEnabledPaymentMethods } from "@/lib/payment-methods";
+import { calcShippingFee } from "@/lib/shipping";
 
 export default function CartForm() {
   const dispatch = useAppDispatch();
+  const { paymentOptions, siteInfo } = usePublicSettings();
   const items = useSelector((s: IRootState) => s.cart.items);
   const subtotal = useSelector((s: IRootState) => s.cart.totalPrice);
 
-  const shipping =
-    subtotal >= FREE_SHIPPING_FROM ? 0 : items.length > 0 ? SHIPPING_FLAT : 0;
+  const paymentMethods = useMemo(
+    () => getEnabledPaymentMethods(paymentOptions),
+    [paymentOptions],
+  );
+
+  const shipping = calcShippingFee(subtotal, items.length, {
+    shippingFee: siteInfo.shippingFee,
+    freeShippingThreshold: siteInfo.freeShippingThreshold,
+  });
   const total = subtotal + shipping;
 
   const formatPrice = (price: number) =>
@@ -204,11 +213,12 @@ export default function CartForm() {
                     )}
                   </span>
                 </div>
-                {subtotal > 0 && subtotal < FREE_SHIPPING_FROM ? (
+                {subtotal > 0 &&
+                subtotal < siteInfo.freeShippingThreshold ? (
                   <p className="text-xs text-gray-500">
                     Mua thêm{" "}
                     <span className="font-medium text-orange-600">
-                      {formatPrice(FREE_SHIPPING_FROM - subtotal)}
+                      {formatPrice(siteInfo.freeShippingThreshold - subtotal)}
                     </span>{" "}
                     để được miễn phí vận chuyển.
                   </p>
@@ -224,6 +234,25 @@ export default function CartForm() {
                   </div>
                 </div>
               </div>
+
+              {paymentMethods.length > 0 ? (
+                <div className="mb-4 rounded-lg border border-gray-100 bg-gray-50 p-4">
+                  <h3 className="mb-2 text-sm font-semibold text-gray-900">
+                    Phương thức thanh toán
+                  </h3>
+                  <ul className="space-y-1.5 text-sm text-gray-600">
+                    {paymentMethods.map((m) => (
+                      <li key={m.code} className="flex items-center gap-2">
+                        <m.icon className="h-4 w-4 shrink-0 text-orange-500" />
+                        {m.label}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-2 text-xs text-gray-500">
+                    Chọn phương thức cụ thể ở bước thanh toán.
+                  </p>
+                </div>
+              ) : null}
 
               <div className="space-y-4">
                 <Link
@@ -243,10 +272,10 @@ export default function CartForm() {
                 </h3>
                 <div className="space-y-2 text-sm text-gray-600">
                   <p>• Giao hàng toàn quốc</p>
-                  <p>• Thời gian giao hàng: 1-3 ngày</p>
+                  <p>• Thời gian giao hàng: {siteInfo.deliveryTime}</p>
                   <p>
                     • Miễn phí vận chuyển cho đơn từ{" "}
-                    {formatPrice(FREE_SHIPPING_FROM)}
+                    {formatPrice(siteInfo.freeShippingThreshold)}
                   </p>
                 </div>
               </div>

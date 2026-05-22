@@ -5,6 +5,11 @@ import { CheckCircle, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { orderService } from "@/services/api/orderService";
+import { usePublicSettings } from "@/hooks/usePublicSettings";
+import {
+  getPaymentMethodLabel,
+  getPaymentSuccessMessage,
+} from "@/lib/payment-methods";
 import type { OrderResponse } from "@/types/order-types";
 
 function formatPrice(price: number) {
@@ -17,6 +22,7 @@ function formatPrice(price: number) {
 function SuccessContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get("orderId");
+  const { paymentOptions } = usePublicSettings();
   const [order, setOrder] = useState<OrderResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -76,18 +82,31 @@ function SuccessContent() {
       </div>
       <h1 className="text-2xl font-bold text-gray-900 mb-2">Đặt hàng thành công</h1>
       <p className="text-gray-600 mb-6">
-        Cảm ơn bạn đã mua hàng. Đơn của bạn đang ở trạng thái{" "}
-        <span className="font-medium text-gray-800">chờ xác nhận</span>. Shipper sẽ liên hệ
-        và giao hàng; bạn thanh toán bằng tiền mặt khi nhận (COD).
+        Cảm ơn bạn đã mua hàng. Đơn đang ở trạng thái{" "}
+        <span className="font-medium text-gray-800">chờ xác nhận</span>.
       </p>
-      <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-left text-sm mb-8">
+      <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-left text-sm mb-8 space-y-2">
         <p>
           <span className="text-gray-500">Mã đơn:</span>{" "}
           <span className="font-mono font-semibold text-gray-900">{order.orderNumber}</span>
         </p>
-        <p className="mt-2">
+        <p>
+          <span className="text-gray-500">Thanh toán:</span>{" "}
+          <span className="font-medium text-gray-900">
+            {getPaymentMethodLabel(order.paymentMethod)}
+          </span>
+        </p>
+        <p>
           <span className="text-gray-500">Tổng thanh toán:</span>{" "}
           <span className="font-semibold text-orange-600">{formatPrice(order.total)}</span>
+        </p>
+        <p className="pt-2 border-t border-gray-200 text-gray-700">
+          {getPaymentSuccessMessage(
+            order.paymentMethod,
+            order.orderNumber,
+            paymentOptions.bankAccount,
+            paymentOptions.bankName,
+          )}
         </p>
       </div>
       <div className="flex flex-col sm:flex-row gap-3 justify-center">

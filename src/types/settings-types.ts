@@ -33,6 +33,7 @@ export interface PaymentSettings {
   bankTransferEnabled: boolean;
   creditCardEnabled: boolean;
   paypalEnabled: boolean;
+  momoEnabled: boolean;
   bankAccount: string;
   bankName: string;
 }
@@ -52,6 +53,16 @@ export interface AdminSettingsForm {
   notifications: NotificationSettings;
 }
 
+/** Phương thức thanh toán từ GET /settings/public */
+export interface PublicPaymentOptions {
+  codEnabled: boolean;
+  bankTransferEnabled: boolean;
+  creditCardEnabled: boolean;
+  momoEnabled: boolean;
+  bankAccount: string;
+  bankName: string;
+}
+
 /** Thông tin storefront từ GET /settings/public */
 export interface PublicSiteInfo {
   siteName: string;
@@ -61,4 +72,6 @@ export interface PublicSiteInfo {
   address: string;
   deliveryTime: string;
   returnPolicy: string;
+  shippingFee: number;
+  freeShippingThreshold: number;
 }

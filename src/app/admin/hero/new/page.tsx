@@ -13,6 +13,7 @@ const emptyHero: CreateHero = {
   description: "",
   imageUrl: "",
   ctaLink: "/products",
+  isPublished: false,
 };
 
 export default function NewHeroPage() {

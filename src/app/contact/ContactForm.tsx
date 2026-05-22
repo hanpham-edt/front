@@ -6,10 +6,6 @@ import { CreateContact } from "@/types/contact-types";
 import { contactService } from "@/services/api/contactService";
 import { usePublicSettings } from "@/hooks/usePublicSettings";
 
-function telHref(phone: string) {
-  return `tel:${phone.replace(/\s/g, "")}`;
-}
-
 export default function ContactPage() {
   const { siteInfo } = usePublicSettings();
   const [formData, setFormData] = useState<CreateContact>({

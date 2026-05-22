@@ -8,6 +8,7 @@ import RecentOrders from "./components/RecentOrders";
 import TopProducts from "./components/TopProducts";
 import LowStockAlert from "./components/LowStockAlert";
 import QuickActions from "./components/QuickActions";
+import RevenueChart from "./components/RevenueChart";
 
 export default function AdminDashboard() {
   const { stats, isLoading, error, refresh } = useDashboard();
@@ -42,6 +43,11 @@ export default function AdminDashboard() {
       ) : null}
 
       <StatsGrid overview={stats?.overview} isLoading={isLoading} />
+
+      <RevenueChart
+        data={stats?.revenueByDay ?? []}
+        isLoading={isLoading}
+      />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="xl:col-span-1">

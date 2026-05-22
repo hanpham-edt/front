@@ -10,6 +10,15 @@ import { CreateProduct } from "@/types/product-types";
 import { ProductService } from "@/services/api/productService";
 import { useCategories } from "@/hooks/useCategory";
 import { uploadProductImageFile, isStoredImageUrl } from "@/utils/productImageUpload";
+import RichTextEditor from "@/components/admin/RichTextEditor";
+import {
+  getPlainTextLength,
+  isEmptyArticleHtml,
+} from "@/lib/html-content";
+import {
+  MAX_PRODUCT_IMAGES,
+  remainingImageSlots,
+} from "@/lib/product-images";
 
 export default function EditProductPage() {
   const router = useRouter();
@@ -17,7 +26,7 @@ export default function EditProductPage() {
   const { id } = params;
   const { categories, getCategories } = useCategories();
   const [imagePreview, setImagePreview] = useState<string[]>([]);
-  const [images, setImages] = useState<File[]>([]);
+  const [imageNames, setImageNames] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [formData, setFormData] = useState<CreateProduct>({
@@ -44,7 +53,10 @@ export default function EditProductPage() {
       imageUrl: res.imageUrl,
       isActive: res.isActive,
     });
-    setImagePreview(res.imageUrl ? [res.imageUrl] : []);
+    const urls =
+      res.imageUrls?.length ? res.imageUrls : res.imageUrl ? [res.imageUrl] : [];
+    setImagePreview(urls);
+    setImageNames(urls.map((_, i) => `Ảnh ${i + 1}`));
   }, [id]);
 
   // Nếu có ảnh cũ, hiển thị preview, nếu không thì rỗng
@@ -73,23 +85,32 @@ export default function EditProductPage() {
       (file) => file.type.startsWith("image/") && file.size <= 5 * 1024 * 1024,
     );
 
-    if (validFiles.length + images.length + imagePreview.length > 5) {
-      alert("Tối đa 5 hình ảnh cho mỗi sản phẩm");
+    const slotsLeft = remainingImageSlots(imagePreview.length);
+    if (slotsLeft <= 0) {
+      alert(`Tối đa ${MAX_PRODUCT_IMAGES} hình ảnh cho mỗi sản phẩm`);
       return;
+    }
+
+    const filesToUpload = validFiles.slice(0, slotsLeft);
+    if (validFiles.length > slotsLeft) {
+      alert(
+        `Chỉ thêm được ${slotsLeft} ảnh nữa (tối đa ${MAX_PRODUCT_IMAGES} ảnh).`,
+      );
     }
 
     setIsUploadingImage(true);
     try {
-      for (const file of validFiles) {
+      const uploaded: { url: string; name: string }[] = [];
+      for (const file of filesToUpload) {
         const url = await uploadProductImageFile(file);
-        setImages((prev) => [...prev, file]);
-        setImagePreview((prev) => [...prev, url]);
-        setFormData((prev) =>
-          !prev.imageUrl || !isStoredImageUrl(prev.imageUrl)
-            ? { ...prev, imageUrl: url }
-            : prev,
-        );
+        uploaded.push({ url, name: file.name });
       }
+      setImagePreview((prev) => {
+        const next = [...prev, ...uploaded.map((u) => u.url)];
+        setFormData((f) => ({ ...f, imageUrl: next[0] ?? "" }));
+        return next;
+      });
+      setImageNames((prev) => [...prev, ...uploaded.map((u) => u.name)]);
     } catch {
       alert("Upload ảnh thất bại. Vui lòng thử lại.");
     } finally {
@@ -104,13 +125,23 @@ export default function EditProductPage() {
       setFormData((p) => ({ ...p, imageUrl: next[0] ?? "" }));
       return next;
     });
-    setImages((prev) => prev.filter((_, i) => i !== index));
+    setImageNames((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const imageUrl = imagePreview[0] ?? formData.imageUrl ?? "";
-    if (imageUrl && !isStoredImageUrl(imageUrl)) {
+    const description = formData.description.trim();
+    if (isEmptyArticleHtml(description)) {
+      alert("Vui lòng nhập mô tả sản phẩm.");
+      return;
+    }
+    if (getPlainTextLength(description) < 10) {
+      alert("Mô tả sản phẩm cần ít nhất 10 ký tự chữ.");
+      return;
+    }
+    const imageUrls = imagePreview.filter((u) => isStoredImageUrl(u));
+    const imageUrl = imageUrls[0] ?? "";
+    if (imagePreview.length > 0 && imageUrls.length === 0) {
       alert(
         "Ảnh hiện tại đang ở dạng base64. Vui lòng upload lại ảnh để lưu vào /images/.",
       );
@@ -119,7 +150,9 @@ export default function EditProductPage() {
     setIsSubmitting(true);
     await ProductService.updateProduct(String(id), {
       ...formData,
+      description,
       imageUrl,
+      imageUrls,
     });
     setIsSubmitting(false);
     router.push("/admin/products");
@@ -259,21 +292,16 @@ export default function EditProductPage() {
 
           {/* Description */}
           <div>
-            <label
-              htmlFor="description"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Mô tả sản phẩm *
             </label>
-            <textarea
-              id="description"
-              name="description"
+            <RichTextEditor
               value={formData.description}
-              onChange={handleInputChange}
-              required
-              rows={4}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-              placeholder="Mô tả chi tiết về sản phẩm..."
+              onChange={(html) =>
+                setFormData((prev) => ({ ...prev, description: html }))
+              }
+              minLength={10}
+              placeholder="Mô tả chi tiết, thành phần, cách dùng..."
             />
           </div>
 
@@ -284,26 +312,52 @@ export default function EditProductPage() {
             </label>
             <div className="space-y-4">
               {/* Upload Area */}
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-orange-400 transition-colors">
+              <div
+                className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                  imagePreview.length >= MAX_PRODUCT_IMAGES
+                    ? "border-gray-200 bg-gray-50 opacity-60"
+                    : "border-gray-300 hover:border-orange-400"
+                }`}
+              >
                 <input
                   type="file"
                   multiple
                   accept="image/*"
                   onChange={handleImageUpload}
+                  disabled={
+                    isUploadingImage ||
+                    imagePreview.length >= MAX_PRODUCT_IMAGES
+                  }
                   className="hidden"
                   id="image-upload"
                 />
-                <label htmlFor="image-upload" className="cursor-pointer">
+                <label
+                  htmlFor="image-upload"
+                  className={
+                    imagePreview.length >= MAX_PRODUCT_IMAGES
+                      ? "cursor-not-allowed"
+                      : "cursor-pointer"
+                  }
+                >
                   <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                   <p className="text-sm text-gray-600">
-                    Kéo thả hình ảnh vào đây hoặc{" "}
-                    <span className="text-orange-500 font-medium">
-                      chọn file
-                    </span>
+                    {isUploadingImage
+                      ? "Đang tải ảnh lên..."
+                      : imagePreview.length >= MAX_PRODUCT_IMAGES
+                        ? `Đã đủ ${MAX_PRODUCT_IMAGES} ảnh`
+                        : (
+                          <>
+                            Kéo thả hình ảnh vào đây hoặc{" "}
+                            <span className="text-orange-500 font-medium">
+                              chọn file
+                            </span>
+                          </>
+                        )}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    Hỗ trợ: JPG, PNG, GIF. Tối đa 5MB mỗi file. Tối đa 5 hình
-                    ảnh.
+                    Hỗ trợ: JPG, PNG, GIF. Tối đa 5MB mỗi file. Còn{" "}
+                    {remainingImageSlots(imagePreview.length)}/
+                    {MAX_PRODUCT_IMAGES} ảnh.
                   </p>
                 </label>
               </div>
@@ -334,7 +388,7 @@ export default function EditProductPage() {
                           <X className="h-3 w-3" />
                         </button>
                         <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                          {images[index]?.name || `Image ${index + 1}`}
+                          {imageNames[index] || `Ảnh ${index + 1}`}
                         </div>
                       </div>
                     ))}

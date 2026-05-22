@@ -4,9 +4,17 @@ export interface CreateOrderItemPayload {
   price: number;
 }
 
+export type PaymentMethodCode =
+  | "cod"
+  | "bank_transfer"
+  | "credit_card"
+  | "momo";
+
 export interface CreateOrderPayload {
   items: CreateOrderItemPayload[];
   shippingAddress?: string;
+  paymentMethod: PaymentMethodCode;
+  couponCode?: string;
 }
 
 export interface OrderItemResponse {
@@ -26,8 +34,15 @@ export interface OrderResponse {
   orderNumber: string;
   userId: string;
   status: string;
+  subtotal?: number;
+  discount?: number;
+  couponCode?: string | null;
   total: number;
   shippingAddress: string;
+  trackingNumber?: string | null;
+  notes?: string | null;
+  paymentMethod: string | null;
+  paymentStatus: string | null;
   items: OrderItemResponse[];
   createdAt: string;
   updatedAt: string;
@@ -53,3 +68,9 @@ export type OrderStatusCode =
   | "SHIPPED"
   | "DELIVERED"
   | "CANCELLED";
+
+export type PaymentStatusCode =
+  | "PENDING"
+  | "COMPLETED"
+  | "FAILED"
+  | "REFUNDED";

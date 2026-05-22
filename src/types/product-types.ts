@@ -6,6 +6,7 @@ export interface Product {
   stock: number;
   sku: string;
   imageUrl: string;
+  imageUrls?: string[];
   isActive: boolean;
   category: string | null;
   categoryId: string;
@@ -19,6 +20,7 @@ export interface CreateProduct {
   stock: number;
   sku: string;
   imageUrl: string;
+  imageUrls?: string[];
   categoryId: string;
   isActive: boolean;
 }

@@ -2,12 +2,18 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { settingsService } from "@/services/api/settingsService";
-import type { PublicSiteInfo } from "@/types/settings-types";
-import { mapPublicSettingsToSiteInfo } from "@/utils/settingsMapper";
+import type { PublicPaymentOptions, PublicSiteInfo } from "@/types/settings-types";
+import {
+  mapPublicSettingsToPaymentOptions,
+  mapPublicSettingsToSiteInfo,
+} from "@/utils/settingsMapper";
 
 export function usePublicSettings() {
   const [siteInfo, setSiteInfo] = useState<PublicSiteInfo>(() =>
     mapPublicSettingsToSiteInfo({}),
+  );
+  const [paymentOptions, setPaymentOptions] = useState<PublicPaymentOptions>(
+    () => mapPublicSettingsToPaymentOptions({}),
   );
   const [isLoading, setIsLoading] = useState(true);
 
@@ -16,8 +22,10 @@ export function usePublicSettings() {
     try {
       const { settings } = await settingsService.getPublic();
       setSiteInfo(mapPublicSettingsToSiteInfo(settings));
+      setPaymentOptions(mapPublicSettingsToPaymentOptions(settings));
     } catch {
       setSiteInfo(mapPublicSettingsToSiteInfo({}));
+      setPaymentOptions(mapPublicSettingsToPaymentOptions({}));
     } finally {
       setIsLoading(false);
     }
@@ -27,5 +35,5 @@ export function usePublicSettings() {
     void load();
   }, [load]);
 
-  return { siteInfo, isLoading, reload: load };
+  return { siteInfo, paymentOptions, isLoading, reload: load };
 }

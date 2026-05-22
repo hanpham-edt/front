@@ -19,6 +19,9 @@ import {
   UserCircle,
   KeyRound,
   Contact,
+  Ticket,
+  Newspaper,
+  Star,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
@@ -42,6 +45,9 @@ export default function AdminLayout({
     { name: "Users", href: "/admin/users", icon: Users },
     { name: "Categories", href: "/admin/categories", icon: Tags },
     { name: "Products", href: "/admin/products", icon: Package },
+    { name: "Coupons", href: "/admin/coupons", icon: Ticket },
+    { name: "News", href: "/admin/news", icon: Newspaper },
+    { name: "Reviews", href: "/admin/reviews", icon: Star },
     { name: "Orders", href: "/admin/orders", icon: ShoppingCart },
     { name: "Contacts", href: "/admin/contacts", icon: Contact },
     { name: "Hero", href: "/admin/hero", icon: Contact },

@@ -3,21 +3,23 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Plus, Edit, Trash2, Search, Eye, Package } from "lucide-react";
+import { Plus, Edit, Trash2, Search, Eye, Package, Loader2 } from "lucide-react";
 import { useProducts } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategory";
+//import { ProductService } from "@/services/api/productService";
+import AdminPagination from "@/components/admin/AdminPagination";
 
 export default function AdminProductsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const { products, getProducts } = useProducts();
+  const { products, getProducts, meta, isLoading } = useProducts();
   const { categories, getCategories } = useCategories();
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [status, setStatus] = useState<"all" | "active" | "inactive">("all");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
-  const limit = 12;
+  const [limit, setLimit] = useState(12);
 
   useEffect(() => {
     void getCategories();
@@ -145,12 +147,26 @@ export default function AdminProductsPage() {
 
       {/* Products Table */}
       <div className="bg-white shadow rounded-lg overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between gap-3">
           <h3 className="text-lg font-medium text-gray-900">
-            Sản phẩm ({products.length})
+            Sản phẩm ({meta.total})
           </h3>
+          {meta.totalPages > 0 ? (
+            <p className="text-sm text-gray-600">
+              Trang {meta.page} / {meta.totalPages}
+            </p>
+          ) : null}
         </div>
 
+        {isLoading ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-10 w-10 animate-spin text-orange-500" />
+          </div>
+        ) : products.length === 0 ? (
+          <div className="py-16 text-center text-gray-500">
+            Không tìm thấy sản phẩm phù hợp.
+          </div>
+        ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -256,6 +272,19 @@ export default function AdminProductsPage() {
             </tbody>
           </table>
         </div>
+        )}
+
+        <AdminPagination
+          page={meta.page}
+          totalPages={meta.totalPages}
+          total={meta.total}
+          limit={meta.limit}
+          onPageChange={setPage}
+          onLimitChange={(next) => {
+            setLimit(next);
+            setPage(1);
+          }}
+        />
       </div>
 
       {/* Delete Modal */}

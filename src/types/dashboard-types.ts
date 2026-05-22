@@ -43,10 +43,17 @@ export interface DashboardLowStockProduct {
   imageUrl: string | null;
 }
 
+export interface DashboardDailyPoint {
+  date: string;
+  revenue: number;
+  orders: number;
+}
+
 export interface DashboardStats {
   overview: DashboardOverview;
   ordersByStatus: OrderStatusCount[];
   recentOrders: DashboardRecentOrder[];
   topProducts: DashboardTopProduct[];
   lowStockProducts: DashboardLowStockProduct[];
+  revenueByDay: DashboardDailyPoint[];
 }

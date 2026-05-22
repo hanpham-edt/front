@@ -131,6 +131,21 @@ export default function HeroForm({
         />
       </div>
 
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="heroIsPublished"
+          checked={!!form.isPublished}
+          onChange={(e) =>
+            setForm((prev) => ({ ...prev, isPublished: e.target.checked }))
+          }
+          className="h-4 w-4 rounded border-gray-300 text-orange-600"
+        />
+        <label htmlFor="heroIsPublished" className="text-sm text-gray-700">
+          Xuất bản (hiển thị slide trên trang chủ)
+        </label>
+      </div>
+
       <div>
         <label className="mb-1 block text-sm font-medium text-gray-700">
           Link nút CTA *

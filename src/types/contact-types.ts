@@ -6,6 +6,8 @@ export interface Contact {
   topic: string;
   content: string;
   status: boolean;
+  createdAt: string;
+  repliedAt: string | null;
 }
 
 export interface CreateContact {

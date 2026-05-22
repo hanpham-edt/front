@@ -34,6 +34,7 @@ export class ProductService {
     if (product.price !== undefined) payload.price = product.price;
     if (product.stock !== undefined) payload.stock = product.stock;
     if (product.imageUrl !== undefined) payload.imageUrl = product.imageUrl;
+    if (product.imageUrls !== undefined) payload.imageUrls = product.imageUrls;
     if (product.isActive !== undefined) payload.isActive = product.isActive;
 
     const response = await apiClient.patch<Product>(

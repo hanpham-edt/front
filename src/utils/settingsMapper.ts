@@ -1,5 +1,6 @@
 import type {
   AdminSettingsForm,
+  PublicPaymentOptions,
   PublicSiteInfo,
   SettingsMap,
 } from "@/types/settings-types";
@@ -31,6 +32,7 @@ const DEFAULT_FORM: AdminSettingsForm = {
     bankTransferEnabled: true,
     creditCardEnabled: true,
     paypalEnabled: false,
+    momoEnabled: false,
     bankAccount: "1234567890",
     bankName: "Vietcombank",
   },
@@ -88,6 +90,10 @@ export function mapSettingsToForm(settings: SettingsMap): AdminSettingsForm {
         settings["payment.paypalEnabled"],
         d.payment.paypalEnabled,
       ),
+      momoEnabled: boolFromString(
+        settings["payment.momoEnabled"],
+        d.payment.momoEnabled,
+      ),
       bankAccount: settings["payment.bankAccount"] ?? d.payment.bankAccount,
       bankName: settings["payment.bankName"] ?? d.payment.bankName,
     },
@@ -120,7 +126,30 @@ const DEFAULT_PUBLIC: PublicSiteInfo = {
   address: DEFAULT_FORM.general.address,
   deliveryTime: DEFAULT_FORM.shipping.deliveryTime,
   returnPolicy: DEFAULT_FORM.shipping.returnPolicy,
+  shippingFee: Number(DEFAULT_FORM.shipping.shippingFee) || 50_000,
+  freeShippingThreshold:
+    Number(DEFAULT_FORM.shipping.freeShippingThreshold) || 2_000_000,
 };
+
+export function mapPublicSettingsToPaymentOptions(
+  settings: SettingsMap,
+): PublicPaymentOptions {
+  const d = DEFAULT_FORM.payment;
+  return {
+    codEnabled: boolFromString(settings["payment.codEnabled"], d.codEnabled),
+    bankTransferEnabled: boolFromString(
+      settings["payment.bankTransferEnabled"],
+      d.bankTransferEnabled,
+    ),
+    creditCardEnabled: boolFromString(
+      settings["payment.creditCardEnabled"],
+      d.creditCardEnabled,
+    ),
+    momoEnabled: boolFromString(settings["payment.momoEnabled"], d.momoEnabled),
+    bankAccount: settings["payment.bankAccount"] ?? d.bankAccount,
+    bankName: settings["payment.bankName"] ?? d.bankName,
+  };
+}
 
 export function mapPublicSettingsToSiteInfo(
   settings: SettingsMap,
@@ -138,6 +167,11 @@ export function mapPublicSettingsToSiteInfo(
       settings["shipping.deliveryTime"] ?? DEFAULT_PUBLIC.deliveryTime,
     returnPolicy:
       settings["shipping.returnPolicy"] ?? DEFAULT_PUBLIC.returnPolicy,
+    shippingFee:
+      Number(settings["shipping.shippingFee"]) || DEFAULT_PUBLIC.shippingFee,
+    freeShippingThreshold:
+      Number(settings["shipping.freeShippingThreshold"]) ||
+      DEFAULT_PUBLIC.freeShippingThreshold,
   };
 }
 
@@ -162,6 +196,7 @@ export function mapFormToSettings(form: AdminSettingsForm): SettingsMap {
     "payment.bankTransferEnabled": String(form.payment.bankTransferEnabled),
     "payment.creditCardEnabled": String(form.payment.creditCardEnabled),
     "payment.paypalEnabled": String(form.payment.paypalEnabled),
+    "payment.momoEnabled": String(form.payment.momoEnabled),
     "payment.bankAccount": form.payment.bankAccount,
     "payment.bankName": form.payment.bankName,
     "notifications.newOrderEmail": String(form.notifications.newOrderEmail),

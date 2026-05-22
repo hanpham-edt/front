@@ -5,6 +5,8 @@ export interface Hero {
   description: string | null;
   imageUrl: string;
   ctaLink: string;
+  isPublished: boolean;
+  publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -15,6 +17,18 @@ export interface CreateHero {
   description?: string;
   imageUrl: string;
   ctaLink: string;
+  isPublished?: boolean;
+  publishedAt?: string;
 }
 
 export type UpdateHero = Partial<CreateHero>;
+
+export interface HeroListResponse {
+  data: Hero[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
