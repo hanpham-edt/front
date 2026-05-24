@@ -28,9 +28,14 @@ function unwrap(res: OrderApiEnvelope): OrderResponse {
 }
 
 export const orderService = {
-  async createOrder(body: CreateOrderPayload): Promise<OrderResponse> {
+  async createOrder(
+    body: CreateOrderPayload,
+  ): Promise<{ order: OrderResponse; momoPayUrl?: string }> {
     const { data } = await apiClient.post<OrderApiEnvelope>("/orders", body);
-    return unwrap(data);
+    return {
+      order: unwrap(data),
+      momoPayUrl: data.momoPayUrl,
+    };
   },
 
   async getOrder(id: string): Promise<OrderResponse> {

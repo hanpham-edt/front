@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Loader2, Upload } from "lucide-react";
+import { Images, Loader2, Upload } from "lucide-react";
+import MediaPickerModal from "@/components/admin/MediaPickerModal";
+import { MEDIA_FOLDERS } from "@/lib/media-folders";
 import type { CreateArticle } from "@/types/article-types";
 import RichTextEditor from "@/components/admin/RichTextEditor";
 import { getApiErrorMessage } from "@/lib/api-error";
@@ -31,6 +33,7 @@ export default function ArticleForm({
   const [form, setForm] = useState<CreateArticle>(initial);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,7 +41,7 @@ export default function ArticleForm({
     if (!file) return;
     setUploading(true);
     try {
-      const url = await uploadProductImageFile(file);
+      const url = await uploadProductImageFile(file, MEDIA_FOLDERS.NEWS);
       setForm((f) => ({ ...f, imageUrl: url }));
     } catch {
       alert("Upload ảnh thất bại.");
@@ -144,6 +147,7 @@ export default function ArticleForm({
           value={form.content}
           onChange={(html) => setForm((f) => ({ ...f, content: html }))}
           minLength={MIN_CONTENT_LENGTH}
+          mediaFolder={MEDIA_FOLDERS.CONTENT}
         />
       </div>
       <div>
@@ -160,17 +164,61 @@ export default function ArticleForm({
             />
           </div>
         ) : null}
-        <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-gray-300 px-4 py-2 text-sm text-gray-600 hover:border-orange-400">
-          <Upload className="h-4 w-4" />
-          {uploading ? "Đang tải..." : "Chọn ảnh"}
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            disabled={uploading}
-            onChange={(e) => void handleImage(e)}
-          />
+        <div className="flex flex-wrap gap-2">
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-gray-300 px-4 py-2 text-sm text-gray-600 hover:border-orange-400">
+            <Upload className="h-4 w-4" />
+            {uploading ? "Đang tải..." : "Tải ảnh mới"}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={uploading}
+              onChange={(e) => void handleImage(e)}
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => setPickerOpen(true)}
+            className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+          >
+            <Images className="h-4 w-4" />
+            Thư viện
+          </button>
+        </div>
+        <MediaPickerModal
+          open={pickerOpen}
+          onClose={() => setPickerOpen(false)}
+          folder={MEDIA_FOLDERS.NEWS}
+          onSelect={(url) => setForm((f) => ({ ...f, imageUrl: url }))}
+          title="Chọn ảnh bìa tin tức"
+        />
+      </div>
+      <div>
+        <label className="mb-1 block text-sm font-medium text-gray-700">
+          Meta title (SEO)
         </label>
+        <input
+          value={form.metaTitle ?? ""}
+          onChange={(e) =>
+            setForm((f) => ({ ...f, metaTitle: e.target.value }))
+          }
+          className="w-full rounded-md border border-gray-300 px-3 py-2"
+          placeholder="Tiêu đề hiển thị trên Google"
+        />
+      </div>
+      <div>
+        <label className="mb-1 block text-sm font-medium text-gray-700">
+          Meta description (SEO)
+        </label>
+        <textarea
+          value={form.metaDescription ?? ""}
+          onChange={(e) =>
+            setForm((f) => ({ ...f, metaDescription: e.target.value }))
+          }
+          rows={2}
+          className="w-full rounded-md border border-gray-300 px-3 py-2"
+          placeholder="Mô tả ngắn cho công cụ tìm kiếm"
+        />
       </div>
       <div className="flex items-center gap-2">
         <input

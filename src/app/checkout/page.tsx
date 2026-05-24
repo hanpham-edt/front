@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Building2, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -20,7 +19,11 @@ import {
 } from "@/lib/payment-methods";
 import type { PaymentMethodCode as OrderPaymentMethod } from "@/types/order-types";
 import { calcShippingFee } from "@/lib/shipping";
+import { calcVatAmount } from "@/lib/order-totals";
 import { couponService } from "@/services/api/couponService";
+import { useSyncServerCart } from "@/hooks/useSyncServerCart";
+import { useRefreshCartProductImages } from "@/hooks/useRefreshCartProductImages";
+import ProductThumbnail from "@/components/products/ProductThumbnail";
 
 function formatPrice(price: number) {
   return new Intl.NumberFormat("vi-VN", {
@@ -30,6 +33,8 @@ function formatPrice(price: number) {
 }
 
 export default function CheckoutPage() {
+  useSyncServerCart();
+  useRefreshCartProductImages();
   const router = useRouter();
   const dispatch = useAppDispatch();
   const rehydrated = usePersistRehydrated();
@@ -61,7 +66,14 @@ export default function CheckoutPage() {
     shippingFee: siteInfo.shippingFee,
     freeShippingThreshold: siteInfo.freeShippingThreshold,
   });
-  const total = Math.max(0, subtotal - discount) + shipping;
+  const afterDiscount = Math.max(0, subtotal - discount);
+  const taxable = afterDiscount + shipping;
+  const tax = calcVatAmount(
+    taxable,
+    siteInfo.vatEnabled,
+    siteInfo.vatRate,
+  );
+  const total = taxable + tax;
 
   const handleApplyCoupon = async () => {
     const code = couponInput.trim();
@@ -144,17 +156,22 @@ export default function CheckoutPage() {
 
     setSubmitting(true);
     try {
-      const order = await orderService.createOrder({
+      const { order, momoPayUrl } = await orderService.createOrder({
         items: items.map((row) => ({
           productId: row.productId,
+          ...(row.variantId ? { variantId: row.variantId } : {}),
           quantity: row.quantity,
-          price: row.product.price,
+          price: row.unitPrice,
         })),
         shippingAddress,
         paymentMethod: paymentMethod as OrderPaymentMethod,
         ...(appliedCoupon ? { couponCode: appliedCoupon } : {}),
       });
       dispatch(clearCart());
+      if (paymentMethod === "momo" && momoPayUrl) {
+        window.location.href = momoPayUrl;
+        return;
+      }
       router.push(
         `/checkout/success?orderId=${encodeURIComponent(order.id)}`,
       );
@@ -375,26 +392,22 @@ export default function CheckoutPage() {
               <ul className="divide-y divide-gray-100 max-h-64 overflow-y-auto mb-4">
                 {items.map((row) => (
                   <li
-                    key={row.productId}
+                    key={row.lineKey}
                     className="flex gap-3 py-3 first:pt-0"
                   >
-                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded border border-gray-100 bg-gray-50">
-                      {row.product.imageUrl ? (
-                        <Image
-                          src={row.product.imageUrl}
-                          alt=""
-                          fill
-                          className="object-cover"
-                          sizes="56px"
-                        />
-                      ) : null}
-                    </div>
+                    <ProductThumbnail
+                      name={row.product.name}
+                      imageUrl={row.product.imageUrl}
+                      imageUrls={row.product.imageUrls}
+                      size="sm"
+                    />
                     <div className="min-w-0 flex-1 text-sm">
                       <p className="font-medium text-gray-900 truncate">
                         {row.product.name}
+                        {row.variantName ? ` — ${row.variantName}` : ""}
                       </p>
                       <p className="text-gray-500">
-                        {row.quantity} × {formatPrice(row.product.price)}
+                        {row.quantity} × {formatPrice(row.unitPrice)}
                       </p>
                     </div>
                   </li>
@@ -469,6 +482,14 @@ export default function CheckoutPage() {
                     )}
                   </span>
                 </div>
+                {tax > 0 ? (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">
+                      VAT ({siteInfo.vatRate}%)
+                    </span>
+                    <span>{formatPrice(tax)}</span>
+                  </div>
+                ) : null}
                 <div className="flex justify-between text-base font-bold pt-2 border-t border-gray-100">
                   <span>Tổng cộng</span>
                   <span className="text-orange-600">{formatPrice(total)}</span>

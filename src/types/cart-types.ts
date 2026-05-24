@@ -1,8 +1,13 @@
-import { Product } from "./product-types";
+import { Product, ProductVariant } from "./product-types";
 
 export interface CartItem {
+  lineKey: string;
   productId: string;
+  variantId: string | null;
+  variantName: string | null;
   product: Product;
+  variant: ProductVariant | null;
+  unitPrice: number;
   quantity: number;
 }
 

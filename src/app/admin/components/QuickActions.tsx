@@ -9,6 +9,7 @@ import {
   MessageSquare,
   Settings,
   ImageIcon,
+  Images,
 } from "lucide-react";
 
 interface QuickActionsProps {
@@ -54,6 +55,12 @@ const actions = [
     href: "/admin/hero",
     icon: ImageIcon,
     color: "bg-pink-500 hover:bg-pink-600",
+  },
+  {
+    label: "Thư viện media",
+    href: "/admin/media",
+    icon: Images,
+    color: "bg-amber-500 hover:bg-amber-600",
   },
   {
     label: "Cài đặt",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
@@ -13,6 +13,7 @@ import {
   AlignLeft,
   AlignRight,
   Bold,
+  FolderOpen,
   Heading2,
   Heading3,
   ImageIcon,
@@ -25,6 +26,11 @@ import {
   Underline as UnderlineIcon,
   Undo2,
 } from "lucide-react";
+import MediaPickerModal from "@/components/admin/MediaPickerModal";
+import {
+  MEDIA_FOLDERS,
+  type MediaFolder,
+} from "@/lib/media-folders";
 import { uploadProductImageFile } from "@/utils/productImageUpload";
 import { getPlainTextLength } from "@/lib/html-content";
 
@@ -33,6 +39,8 @@ type RichTextEditorProps = {
   onChange: (html: string) => void;
   minLength?: number;
   placeholder?: string;
+  /** Thư mục lưu ảnh chèn trong editor */
+  mediaFolder?: MediaFolder;
 };
 
 function ToolbarButton({
@@ -70,9 +78,11 @@ export default function RichTextEditor({
   onChange,
   minLength = 10,
   placeholder = "Viết nội dung bài viết...",
+  mediaFolder = MEDIA_FOLDERS.CONTENT,
 }: RichTextEditorProps) {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const uploadingRef = useRef(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -113,6 +123,14 @@ export default function RichTextEditor({
     }
   }, [editor, value]);
 
+  const insertImageUrl = useCallback(
+    (url: string, alt?: string) => {
+      if (!editor) return;
+      editor.chain().focus().setImage({ src: url, alt: alt ?? "" }).run();
+    },
+    [editor],
+  );
+
   const insertImage = useCallback(async () => {
     if (!editor || uploadingRef.current) return;
     imageInputRef.current?.click();
@@ -123,8 +141,8 @@ export default function RichTextEditor({
     if (!file || !editor) return;
     uploadingRef.current = true;
     try {
-      const url = await uploadProductImageFile(file);
-      editor.chain().focus().setImage({ src: url, alt: file.name }).run();
+      const url = await uploadProductImageFile(file, mediaFolder);
+      insertImageUrl(url, file.name);
     } catch {
       alert("Upload ảnh thất bại.");
     } finally {
@@ -255,8 +273,14 @@ export default function RichTextEditor({
         <ToolbarButton title="Chèn liên kết" onClick={setLink}>
           <Link2 className="h-4 w-4" />
         </ToolbarButton>
-        <ToolbarButton title="Chèn ảnh" onClick={() => void insertImage()}>
+        <ToolbarButton title="Upload ảnh" onClick={() => void insertImage()}>
           <ImageIcon className="h-4 w-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          title="Chọn từ thư viện"
+          onClick={() => setPickerOpen(true)}
+        >
+          <FolderOpen className="h-4 w-4" />
         </ToolbarButton>
         <input
           ref={imageInputRef}
@@ -270,16 +294,24 @@ export default function RichTextEditor({
       <p className="border-t border-gray-100 px-3 py-2 text-xs text-gray-500">
         {minLength > 0 ? (
           <>
-            Tối thiểu {minLength} ký tự chữ (hiện tại: {textLen}). Dùng nút ảnh
-            để chèn hình.
+            Tối thiểu {minLength} ký tự chữ (hiện tại: {textLen}). Ảnh lưu thư
+            mục <strong>{mediaFolder}</strong>.
           </>
         ) : (
           <>
             {textLen > 0 ? `${textLen} ký tự chữ. ` : ""}
-            Dùng thanh công cụ để định dạng và chèn ảnh.
+            Ảnh chèn lưu thư mục <strong>{mediaFolder}</strong>.
           </>
         )}
       </p>
+
+      <MediaPickerModal
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        folder={mediaFolder}
+        onSelect={(url) => insertImageUrl(url)}
+        title="Chọn ảnh cho nội dung"
+      />
     </div>
   );
 }

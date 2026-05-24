@@ -30,6 +30,10 @@ export default function AdminSettingsPage() {
   const [notificationSettings, setNotificationSettings] = useState(
     emptyForm.notifications,
   );
+  const [taxSettings, setTaxSettings] = useState(emptyForm.tax);
+  const [abandonedCartSettings, setAbandonedCartSettings] = useState(
+    emptyForm.abandonedCart,
+  );
 
   const loadSettings = useCallback(async () => {
     setIsLoading(true);
@@ -42,6 +46,8 @@ export default function AdminSettingsPage() {
       setShippingSettings(form.shipping);
       setPaymentSettings(form.payment);
       setNotificationSettings(form.notifications);
+      setTaxSettings(form.tax);
+      setAbandonedCartSettings(form.abandonedCart);
     } catch {
       setError('Không tải được cài đặt từ server.');
     } finally {
@@ -57,6 +63,7 @@ export default function AdminSettingsPage() {
     { id: 'general', name: 'Cài đặt chung', icon: Globe },
     { id: 'email', name: 'Cài đặt email', icon: Mail },
     { id: 'shipping', name: 'Vận chuyển', icon: Truck },
+    { id: 'tax', name: 'Thuế VAT', icon: CreditCard },
     { id: 'payment', name: 'Thanh toán', icon: CreditCard },
     { id: 'notifications', name: 'Thông báo', icon: Bell },
     { id: 'security', name: 'Bảo mật', icon: Shield },
@@ -73,6 +80,8 @@ export default function AdminSettingsPage() {
         shipping: shippingSettings,
         payment: paymentSettings,
         notifications: notificationSettings,
+        abandonedCart: abandonedCartSettings,
+        tax: taxSettings,
       };
       const payload = mapFormToSettings(form);
       if (
@@ -88,6 +97,7 @@ export default function AdminSettingsPage() {
       setShippingSettings(updated.shipping);
       setPaymentSettings(updated.payment);
       setNotificationSettings(updated.notifications);
+      setTaxSettings(updated.tax);
       setMessage('Đã lưu cài đặt thành công.');
     } catch {
       setError('Lưu cài đặt thất bại. Vui lòng thử lại.');
@@ -296,6 +306,44 @@ export default function AdminSettingsPage() {
             </div>
           )}
 
+          {activeTab === 'tax' && (
+            <div className="space-y-6">
+              <h3 className="text-lg font-medium text-gray-900">Thuế VAT</h3>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-gray-900">Áp dụng VAT trên đơn hàng</span>
+                <input
+                  type="checkbox"
+                  checked={taxSettings.vatEnabled}
+                  onChange={(e) =>
+                    setTaxSettings((p) => ({
+                      ...p,
+                      vatEnabled: e.target.checked,
+                    }))
+                  }
+                  className="h-4 w-4 rounded border-gray-300 text-orange-600"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">
+                  Thuế suất VAT (%)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={taxSettings.vatRate}
+                  onChange={(e) =>
+                    setTaxSettings((p) => ({ ...p, vatRate: e.target.value }))
+                  }
+                  className="w-full max-w-xs rounded-md border border-gray-300 px-3 py-2"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Tính trên (tạm tính − giảm giá + phí ship) khi khách đặt hàng.
+                </p>
+              </div>
+            </div>
+          )}
+
           {activeTab === 'payment' && (
             <div className="space-y-6">
               <h3 className="text-lg font-medium text-gray-900">Cài đặt thanh toán</h3>
@@ -306,7 +354,7 @@ export default function AdminSettingsPage() {
                     ['bankTransferEnabled', 'Chuyển khoản ngân hàng'],
                     ['creditCardEnabled', 'Thẻ tín dụng'],
                     ['paypalEnabled', 'PayPal'],
-                    ['momoEnabled', 'Momo'],
+                    ['momoEnabled', 'Ví MoMo (cổng thanh toán)'],
                   ] as const
                 ).map(([key, label]) => (
                   <div key={key} className="flex items-center justify-between">
@@ -321,6 +369,59 @@ export default function AdminSettingsPage() {
                     />
                   </div>
                 ))}
+              </div>
+              <div className="rounded-lg border border-pink-100 bg-pink-50/50 p-4 text-sm text-pink-900">
+                <p className="font-medium">Cấu hình MoMo (Payment Gateway)</p>
+                <p className="mt-1 text-pink-800/90">
+                  <strong>Test miễn phí (chưa có tài khoản):</strong> trong{" "}
+                  <code className="text-xs">api/.env</code> đặt{" "}
+                  <code className="text-xs">MOMO_MOCK=true</code>, bật Ví MoMo
+                  ở trên, restart API — checkout sẽ mở trang giả lập MoMo.
+                </p>
+                <p className="mt-2 text-pink-800/90">
+                  <strong>MoMo thật:</strong>{" "}
+                  <code className="text-xs">MOMO_PARTNER_CODE</code>,{" "}
+                  <code className="text-xs">MOMO_ACCESS_KEY</code>,{" "}
+                  <code className="text-xs">MOMO_SECRET_KEY</code>,{" "}
+                  <code className="text-xs">MOMO_ENDPOINT</code>,{" "}
+                  <code className="text-xs">API_PUBLIC_URL</code> (IPN).
+                </p>
+              </div>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                    MoMo Partner Code
+                  </label>
+                  <input
+                    type="text"
+                    value={paymentSettings.momoPartnerCode}
+                    onChange={(e) =>
+                      setPaymentSettings((p) => ({
+                        ...p,
+                        momoPartnerCode: e.target.value,
+                      }))
+                    }
+                    className="w-full rounded-md border border-gray-300 px-3 py-2"
+                    placeholder="MOMOxxxx"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                    MoMo Store ID
+                  </label>
+                  <input
+                    type="text"
+                    value={paymentSettings.momoStoreId}
+                    onChange={(e) =>
+                      setPaymentSettings((p) => ({
+                        ...p,
+                        momoStoreId: e.target.value,
+                      }))
+                    }
+                    className="w-full rounded-md border border-gray-300 px-3 py-2"
+                    placeholder="Mặc định = Partner Code"
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-1 gap-6 border-t pt-4 md:grid-cols-2">
                 <div>
@@ -380,6 +481,42 @@ export default function AdminSettingsPage() {
                     />
                   </div>
                 ))}
+                <div className="flex items-center justify-between border-t border-gray-100 pt-4">
+                  <span className="font-medium text-gray-900">
+                    Email nhắc giỏ bỏ quên
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={notificationSettings.abandonedCartReminder}
+                    onChange={(e) =>
+                      setNotificationSettings((p) => ({
+                        ...p,
+                        abandonedCartReminder: e.target.checked,
+                      }))
+                    }
+                    className="h-4 w-4 rounded border-gray-300 text-orange-600"
+                  />
+                </div>
+              </div>
+              <div className="border-t border-gray-100 pt-6">
+                <h4 className="mb-3 text-sm font-semibold text-gray-900">
+                  Giỏ bỏ quên
+                </h4>
+                <label className="mb-1 block text-sm text-gray-600">
+                  Coi là bỏ quên sau (giờ không cập nhật giỏ)
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={720}
+                  value={abandonedCartSettings.inactiveHours}
+                  onChange={(e) =>
+                    setAbandonedCartSettings({
+                      inactiveHours: e.target.value,
+                    })
+                  }
+                  className="w-full max-w-xs rounded-md border border-gray-300 px-3 py-2"
+                />
               </div>
             </div>
           )}

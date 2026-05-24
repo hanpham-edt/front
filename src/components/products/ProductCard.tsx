@@ -5,6 +5,10 @@ import Link from "next/link";
 import { ShoppingCart, Heart, Eye } from "lucide-react";
 import { Product } from "@/types/product-types";
 import Image from "next/image";
+import {
+  getProductPrimaryImageUrl,
+  isLocalProductImage,
+} from "@/lib/product-images";
 
 interface ProductCardProps {
   product: Product;
@@ -21,7 +25,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     }).format(price);
   };
 
-  const imageSrc = product.imageUrl?.trim() ?? "";
+  const imageSrc = getProductPrimaryImageUrl(product);
   const [imageError, setImageError] = useState(false);
   const showImage = Boolean(imageSrc) && !imageError;
 
@@ -40,6 +44,7 @@ export default function ProductCard({ product }: ProductCardProps) {
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               className="object-cover transition-transform duration-500 group-hover:scale-105"
+              unoptimized={isLocalProductImage(imageSrc)}
               onError={() => setImageError(true)}
             />
           ) : (

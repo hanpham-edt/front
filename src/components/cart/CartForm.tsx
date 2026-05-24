@@ -1,5 +1,4 @@
 "use client";
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Minus, Plus, Trash2 } from "lucide-react";
 import { useMemo } from "react";
@@ -10,8 +9,13 @@ import { removeFromCart, setQuantity } from "@/store/slices/cartSlice";
 import { usePublicSettings } from "@/hooks/usePublicSettings";
 import { getEnabledPaymentMethods } from "@/lib/payment-methods";
 import { calcShippingFee } from "@/lib/shipping";
+import { useSyncServerCart } from "@/hooks/useSyncServerCart";
+import { useRefreshCartProductImages } from "@/hooks/useRefreshCartProductImages";
+import ProductThumbnail from "@/components/products/ProductThumbnail";
 
 export default function CartForm() {
+  useSyncServerCart();
+  useRefreshCartProductImages();
   const dispatch = useAppDispatch();
   const { paymentOptions, siteInfo } = usePublicSettings();
   const items = useSelector((s: IRootState) => s.cart.items);
@@ -34,12 +38,12 @@ export default function CartForm() {
       currency: "VND",
     }).format(price);
 
-  const updateQuantity = (productId: string, newQuantity: number) => {
-    dispatch(setQuantity({ productId, quantity: newQuantity }));
+  const updateQuantity = (lineKey: string, newQuantity: number) => {
+    dispatch(setQuantity({ lineKey, quantity: newQuantity }));
   };
 
-  const removeItem = (productId: string) => {
-    dispatch(removeFromCart({ productId }));
+  const removeItem = (lineKey: string) => {
+    dispatch(removeFromCart({ lineKey }));
   };
 
   if (items.length === 0) {
@@ -91,33 +95,28 @@ export default function CartForm() {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-sm">
               {items.map((item) => {
-                const maxQty = Math.max(1, item.product.stock || 0);
-                const canIncrease =
-                  item.quantity < maxQty && item.product.stock > 0;
+                const maxStock = item.variant
+                  ? item.variant.stock
+                  : item.product.stock;
+                const maxQty = Math.max(1, maxStock || 0);
+                const canIncrease = item.quantity < maxQty && maxStock > 0;
 
                 return (
                   <div
-                    key={item.productId}
+                    key={item.lineKey}
                     className="p-6 border-b border-gray-200 last:border-b-0"
                   >
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:space-x-4">
                       <Link
                         href={`/products/${item.product.id}`}
-                        className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg border border-gray-100 bg-gradient-to-br from-yellow-50 to-orange-50"
+                        className="flex-shrink-0"
                       >
-                        {item.product.imageUrl?.trim() ? (
-                          <Image
-                            src={item.product.imageUrl.trim()}
-                            alt={item.product.name}
-                            fill
-                            className="object-contain p-1"
-                            sizes="96px"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-xs text-gray-400">
-                            —
-                          </div>
-                        )}
+                        <ProductThumbnail
+                          name={item.product.name}
+                          imageUrl={item.product.imageUrl}
+                          imageUrls={item.product.imageUrls}
+                          size="md"
+                        />
                       </Link>
 
                       <div className="min-w-0 flex-1">
@@ -126,23 +125,28 @@ export default function CartForm() {
                             {item.product.name}
                           </h3>
                         </Link>
+                        {item.variantName ? (
+                          <p className="text-sm text-orange-700 mb-1">
+                            Quy cách: {item.variantName}
+                          </p>
+                        ) : null}
                         <p className="text-xs text-gray-500 mb-2">
-                          SKU: {item.product.sku}
+                          SKU: {item.variant?.sku ?? item.product.sku}
                           {item.product.category ? (
                             <span> · {item.product.category}</span>
                           ) : null}
                         </p>
                         <div className="flex flex-wrap items-center gap-3">
                           <span className="text-lg font-bold text-orange-600">
-                            {formatPrice(item.product.price)}
+                            {formatPrice(item.unitPrice)}
                           </span>
-                          {item.product.stock <= 0 ? (
+                          {maxStock <= 0 ? (
                             <span className="text-sm text-red-600">
                               Hết hàng
                             </span>
                           ) : (
                             <span className="text-sm text-green-600">
-                              Còn {item.product.stock}
+                              Còn {maxStock}
                             </span>
                           )}
                         </div>
@@ -153,7 +157,7 @@ export default function CartForm() {
                           <button
                             type="button"
                             onClick={() =>
-                              updateQuantity(item.productId, item.quantity - 1)
+                              updateQuantity(item.lineKey, item.quantity - 1)
                             }
                             className="w-8 h-8 border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50"
                             aria-label="Giảm số lượng"
@@ -166,7 +170,7 @@ export default function CartForm() {
                           <button
                             type="button"
                             onClick={() =>
-                              updateQuantity(item.productId, item.quantity + 1)
+                              updateQuantity(item.lineKey, item.quantity + 1)
                             }
                             disabled={!canIncrease}
                             className="w-8 h-8 border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
@@ -178,7 +182,7 @@ export default function CartForm() {
 
                         <button
                           type="button"
-                          onClick={() => removeItem(item.productId)}
+                          onClick={() => removeItem(item.lineKey)}
                           className="text-gray-400 hover:text-red-500 transition-colors p-2"
                           aria-label="Xóa khỏi giỏ"
                         >

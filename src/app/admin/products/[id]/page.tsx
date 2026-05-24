@@ -10,13 +10,7 @@ import { Product } from "@/types/product-types";
 import ArticleHtmlContent from "@/components/articles/ArticleHtmlContent";
 import { isHtmlContent } from "@/lib/html-content";
 import { ProductService } from "@/services/api/productService";
-
-function formatPrice(price: number) {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(price);
-}
+import { formatCurrency } from "@/lib/format";
 
 export default function AdminProductDetailPage() {
   const params = useParams();
@@ -141,8 +135,8 @@ export default function AdminProductDetailPage() {
             </div>
             <div>
               <dt className="text-gray-500">Giá bán</dt>
-              <dd className="font-medium text-gray-900 mt-1">
-                {formatPrice(product.price)}
+              <dd className="font-medium text-gray-900 mt-1 tabular-nums">
+                {formatCurrency(product.price)}
               </dd>
             </div>
             <div>
@@ -187,6 +181,64 @@ export default function AdminProductDetailPage() {
             )}
           </dl>
         </div>
+
+        {product.variants && product.variants.length > 0 ? (
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Biến thể
+            </h3>
+            <div className="overflow-x-auto rounded-lg border border-gray-200">
+              <table className="min-w-full divide-y divide-gray-200 text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-2 text-left font-medium text-gray-500">
+                      Quy cách
+                    </th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-500">
+                      SKU
+                    </th>
+                    <th className="px-4 py-2 text-right font-medium text-gray-500">
+                      Giá
+                    </th>
+                    <th className="px-4 py-2 text-right font-medium text-gray-500">
+                      Tồn
+                    </th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-500">
+                      Trạng thái
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {product.variants.map((v) => (
+                    <tr key={v.id}>
+                      <td className="px-4 py-2 font-medium text-gray-900">
+                        {v.name}
+                      </td>
+                      <td className="px-4 py-2 text-gray-600">{v.sku}</td>
+                      <td className="px-4 py-2 text-right tabular-nums font-medium text-gray-900">
+                        {formatCurrency(v.price)}
+                      </td>
+                      <td className="px-4 py-2 text-right tabular-nums text-gray-900">
+                        {v.stock}
+                      </td>
+                      <td className="px-4 py-2">
+                        <span
+                          className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
+                            v.isActive
+                              ? "bg-green-100 text-green-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {v.isActive ? "Đang bán" : "Tắt"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 export interface CreateOrderItemPayload {
   productId: string;
+  variantId?: string;
   quantity: number;
   price: number;
 }
@@ -20,6 +21,8 @@ export interface CreateOrderPayload {
 export interface OrderItemResponse {
   id: string;
   productId: string;
+  variantId?: string | null;
+  variantName?: string | null;
   productName: string;
   imageUrl?: string;
   quantity: number;
@@ -37,6 +40,8 @@ export interface OrderResponse {
   subtotal?: number;
   discount?: number;
   couponCode?: string | null;
+  shipping?: number;
+  tax?: number;
   total: number;
   shippingAddress: string;
   trackingNumber?: string | null;
@@ -52,6 +57,8 @@ export interface OrderApiEnvelope {
   success: boolean;
   message?: string;
   data: OrderResponse;
+  /** Có khi thanh toán MoMo — chuyển hướng khách tới URL này */
+  momoPayUrl?: string;
 }
 
 /** GET /orders — không bọc { success, data } */

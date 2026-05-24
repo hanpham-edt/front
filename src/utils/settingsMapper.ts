@@ -33,6 +33,8 @@ const DEFAULT_FORM: AdminSettingsForm = {
     creditCardEnabled: true,
     paypalEnabled: false,
     momoEnabled: false,
+    momoPartnerCode: "",
+    momoStoreId: "",
     bankAccount: "1234567890",
     bankName: "Vietcombank",
   },
@@ -41,6 +43,14 @@ const DEFAULT_FORM: AdminSettingsForm = {
     orderStatusEmail: true,
     lowStockEmail: true,
     newsletterEmail: true,
+    abandonedCartReminder: true,
+  },
+  abandonedCart: {
+    inactiveHours: "24",
+  },
+  tax: {
+    vatEnabled: true,
+    vatRate: "8",
   },
 };
 
@@ -94,6 +104,9 @@ export function mapSettingsToForm(settings: SettingsMap): AdminSettingsForm {
         settings["payment.momoEnabled"],
         d.payment.momoEnabled,
       ),
+      momoPartnerCode:
+        settings["payment.momoPartnerCode"] ?? d.payment.momoPartnerCode,
+      momoStoreId: settings["payment.momoStoreId"] ?? d.payment.momoStoreId,
       bankAccount: settings["payment.bankAccount"] ?? d.payment.bankAccount,
       bankName: settings["payment.bankName"] ?? d.payment.bankName,
     },
@@ -114,6 +127,19 @@ export function mapSettingsToForm(settings: SettingsMap): AdminSettingsForm {
         settings["notifications.newsletterEmail"],
         d.notifications.newsletterEmail,
       ),
+      abandonedCartReminder: boolFromString(
+        settings["notifications.abandonedCartReminder"],
+        d.notifications.abandonedCartReminder,
+      ),
+    },
+    abandonedCart: {
+      inactiveHours:
+        settings["abandonedCart.inactiveHours"] ??
+        d.abandonedCart.inactiveHours,
+    },
+    tax: {
+      vatEnabled: boolFromString(settings["tax.vatEnabled"], d.tax.vatEnabled),
+      vatRate: settings["tax.vatRate"] ?? d.tax.vatRate,
     },
   };
 }
@@ -129,6 +155,8 @@ const DEFAULT_PUBLIC: PublicSiteInfo = {
   shippingFee: Number(DEFAULT_FORM.shipping.shippingFee) || 50_000,
   freeShippingThreshold:
     Number(DEFAULT_FORM.shipping.freeShippingThreshold) || 2_000_000,
+  vatEnabled: DEFAULT_FORM.tax.vatEnabled,
+  vatRate: Number(DEFAULT_FORM.tax.vatRate) || 8,
 };
 
 export function mapPublicSettingsToPaymentOptions(
@@ -172,6 +200,11 @@ export function mapPublicSettingsToSiteInfo(
     freeShippingThreshold:
       Number(settings["shipping.freeShippingThreshold"]) ||
       DEFAULT_PUBLIC.freeShippingThreshold,
+    vatEnabled: boolFromString(
+      settings["tax.vatEnabled"],
+      DEFAULT_PUBLIC.vatEnabled,
+    ),
+    vatRate: Number(settings["tax.vatRate"]) || DEFAULT_PUBLIC.vatRate,
   };
 }
 
@@ -197,6 +230,8 @@ export function mapFormToSettings(form: AdminSettingsForm): SettingsMap {
     "payment.creditCardEnabled": String(form.payment.creditCardEnabled),
     "payment.paypalEnabled": String(form.payment.paypalEnabled),
     "payment.momoEnabled": String(form.payment.momoEnabled),
+    "payment.momoPartnerCode": form.payment.momoPartnerCode.trim(),
+    "payment.momoStoreId": form.payment.momoStoreId.trim(),
     "payment.bankAccount": form.payment.bankAccount,
     "payment.bankName": form.payment.bankName,
     "notifications.newOrderEmail": String(form.notifications.newOrderEmail),
@@ -205,5 +240,11 @@ export function mapFormToSettings(form: AdminSettingsForm): SettingsMap {
     ),
     "notifications.lowStockEmail": String(form.notifications.lowStockEmail),
     "notifications.newsletterEmail": String(form.notifications.newsletterEmail),
+    "notifications.abandonedCartReminder": String(
+      form.notifications.abandonedCartReminder,
+    ),
+    "abandonedCart.inactiveHours": form.abandonedCart.inactiveHours,
+    "tax.vatEnabled": String(form.tax.vatEnabled),
+    "tax.vatRate": form.tax.vatRate,
   };
 }

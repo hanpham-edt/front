@@ -34,6 +34,8 @@ export interface PaymentSettings {
   creditCardEnabled: boolean;
   paypalEnabled: boolean;
   momoEnabled: boolean;
+  momoPartnerCode: string;
+  momoStoreId: string;
   bankAccount: string;
   bankName: string;
 }
@@ -43,6 +45,16 @@ export interface NotificationSettings {
   orderStatusEmail: boolean;
   lowStockEmail: boolean;
   newsletterEmail: boolean;
+  abandonedCartReminder: boolean;
+}
+
+export interface AbandonedCartSettings {
+  inactiveHours: string;
+}
+
+export interface TaxSettings {
+  vatEnabled: boolean;
+  vatRate: string;
 }
 
 export interface AdminSettingsForm {
@@ -51,6 +63,8 @@ export interface AdminSettingsForm {
   shipping: ShippingSettings;
   payment: PaymentSettings;
   notifications: NotificationSettings;
+  abandonedCart: AbandonedCartSettings;
+  tax: TaxSettings;
 }
 
 /** Phương thức thanh toán từ GET /settings/public */
@@ -74,4 +88,6 @@ export interface PublicSiteInfo {
   returnPolicy: string;
   shippingFee: number;
   freeShippingThreshold: number;
+  vatEnabled: boolean;
+  vatRate: number;
 }

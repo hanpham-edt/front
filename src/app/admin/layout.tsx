@@ -22,11 +22,22 @@ import {
   Ticket,
   Newspaper,
   Star,
+  ImageIcon,
+  Images,
+  ScrollText,
+  ShoppingBag,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useAdminPermissions } from "@/hooks/useAdminPermissions";
 import { useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import type { IRootState } from "@/store";
+import {
+  ADMIN_NAV_ITEMS,
+  type AdminPermission,
+} from "@/lib/admin-permissions";
+import AdminAccessDenied from "@/components/admin/AdminAccessDenied";
+import type { LucideIcon } from "lucide-react";
 
 function selectRehydrated(state: IRootState): boolean {
   const root = state as IRootState & {
@@ -35,31 +46,45 @@ function selectRehydrated(state: IRootState): boolean {
   return root._persist?.rehydrated === true;
 }
 
+const NAV_ICONS: Record<string, LucideIcon> = {
+  Dashboard: BarChart3,
+  Users: Users,
+  Categories: Tags,
+  Products: Package,
+  Coupons: Ticket,
+  News: Newspaper,
+  Reviews: Star,
+  Orders: ShoppingCart,
+  "Giỏ bỏ quên": ShoppingBag,
+  Contacts: Contact,
+  Hero: ImageIcon,
+  "Thư viện media": Images,
+  "Audit logs": ScrollText,
+  Settings: Settings,
+};
+
+const ALL_NAV = ADMIN_NAV_ITEMS.map((item) => ({
+  ...item,
+  icon: NAV_ICONS[item.name] ?? Package,
+}));
+
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const navigation = [
-    { name: "Dashboard", href: "/admin", icon: BarChart3 },
-    { name: "Users", href: "/admin/users", icon: Users },
-    { name: "Categories", href: "/admin/categories", icon: Tags },
-    { name: "Products", href: "/admin/products", icon: Package },
-    { name: "Coupons", href: "/admin/coupons", icon: Ticket },
-    { name: "News", href: "/admin/news", icon: Newspaper },
-    { name: "Reviews", href: "/admin/reviews", icon: Star },
-    { name: "Orders", href: "/admin/orders", icon: ShoppingCart },
-    { name: "Contacts", href: "/admin/contacts", icon: Contact },
-    { name: "Hero", href: "/admin/hero", icon: Contact },
-    { name: "Settings", href: "/admin/settings", icon: Settings },
-  ];
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { isAdmin, can, canAccessPath } = useAdminPermissions();
   const router = useRouter();
   const rehydrated = useSelector(selectRehydrated);
+
+  const navigation = ALL_NAV.filter((item) =>
+    can(item.permission as AdminPermission),
+  );
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -89,10 +114,10 @@ export default function AdminLayout({
   useEffect(() => {
     if (!rehydrated) return;
     if (isLoginPage) return;
-    if (!user || user.role !== "ADMIN") {
+    if (!user || !isAdmin) {
       router.replace("/admin/login");
     }
-  }, [rehydrated, isLoginPage, user, router]);
+  }, [rehydrated, isLoginPage, user, isAdmin, router]);
 
   // Trang đăng nhập: luôn render form, không bọc shell admin
   if (isLoginPage) {
@@ -107,7 +132,9 @@ export default function AdminLayout({
     );
   }
 
-  if (user && user.role === "ADMIN") {
+  if (user && isAdmin) {
+    const pathAllowed = canAccessPath(pathname);
+
     return (
       <div className="min-h-screen bg-gray-100">
         {/* Mobile sidebar */}
@@ -127,7 +154,7 @@ export default function AdminLayout({
                   <Crown className="h-5 w-5 text-white" />
                 </div>
                 <span className="ml-2 text-lg font-bold text-gray-900">
-                  Welcome {user.firstName} {user.lastName}
+                  {user.firstName} {user.lastName}
                 </span>
               </div>
               <button
@@ -290,7 +317,11 @@ export default function AdminLayout({
           {/* Page content */}
           <main className="py-6">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-              {children}
+              {!pathAllowed ? (
+                <AdminAccessDenied />
+              ) : (
+                children
+              )}
             </div>
           </main>
         </div>

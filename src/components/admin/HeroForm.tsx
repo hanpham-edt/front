@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Upload, X } from "lucide-react";
+import { Images, Upload, X } from "lucide-react";
 import type { CreateHero } from "@/types/hero-types";
+import MediaPickerModal from "@/components/admin/MediaPickerModal";
+import { MEDIA_FOLDERS } from "@/lib/media-folders";
 import {
   isStoredImageUrl,
   uploadProductImageFile,
@@ -23,6 +25,7 @@ export default function HeroForm({
   const [form, setForm] = useState<CreateHero>(initial);
   const [imagePreview, setImagePreview] = useState(initial.imageUrl || "");
   const [isUploading, setIsUploading] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,7 +45,7 @@ export default function HeroForm({
     }
     setIsUploading(true);
     try {
-      const url = await uploadProductImageFile(file);
+      const url = await uploadProductImageFile(file, MEDIA_FOLDERS.HERO);
       setImagePreview(url);
       setForm((prev) => ({ ...prev, imageUrl: url }));
     } catch {
@@ -173,16 +176,34 @@ export default function HeroForm({
             onChange={(e) => void handleImageUpload(e)}
             disabled={isUploading}
           />
-          <label
-            htmlFor="hero-image-upload"
-            className="inline-flex cursor-pointer flex-col items-center"
-          >
-            <Upload className="mb-2 h-8 w-8 text-gray-400" />
-            <span className="text-sm text-gray-600">
-              {isUploading ? "Đang upload..." : "Chọn ảnh (tối đa 5MB)"}
-            </span>
-          </label>
+          <div className="flex flex-wrap justify-center gap-3">
+            <label
+              htmlFor="hero-image-upload"
+              className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-gray-300 px-4 py-2 text-sm text-gray-600 hover:border-orange-400"
+            >
+              <Upload className="h-4 w-4" />
+              {isUploading ? "Đang upload..." : "Tải ảnh mới"}
+            </label>
+            <button
+              type="button"
+              onClick={() => setPickerOpen(true)}
+              className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+            >
+              <Images className="h-4 w-4" />
+              Thư viện
+            </button>
+          </div>
         </div>
+        <MediaPickerModal
+          open={pickerOpen}
+          onClose={() => setPickerOpen(false)}
+          folder={MEDIA_FOLDERS.HERO}
+          onSelect={(url) => {
+            setImagePreview(url);
+            setForm((prev) => ({ ...prev, imageUrl: url }));
+          }}
+          title="Chọn ảnh Hero"
+        />
         {imagePreview && (
           <div className="relative mt-4 inline-block">
             <div className="relative h-40 w-64 overflow-hidden rounded-lg border">
@@ -207,7 +228,7 @@ export default function HeroForm({
           </div>
         )}
         <p className="mt-1 text-xs text-gray-500">
-          Ảnh lưu tại /images/... trên server
+          Thư mục Hero — lưu tại /images/hero/...
         </p>
       </div>
 

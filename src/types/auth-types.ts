@@ -1,9 +1,12 @@
+export type UserRole = "USER" | "STAFF" | "ADMIN";
+
 export interface User {
   id: string;
   email: string;
   firstName?: string;
   lastName?: string;
-  role?: string;
+  role?: UserRole | string;
+  permissions?: string[];
 }
 export interface LoginDto {
   email: string;

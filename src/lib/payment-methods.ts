@@ -39,7 +39,7 @@ const ALL_METHODS: PaymentMethodOption[] = [
     code: "momo",
     label: "Ví MoMo",
     description:
-      "Quét mã hoặc chuyển MoMo — nhân viên xác nhận sau khi nhận được tiền.",
+      "Thanh toán trực tuyến qua cổng MoMo (quét QR / ví MoMo). Đơn được xác nhận tự động.",
     icon: Smartphone,
   },
 ];
@@ -152,7 +152,7 @@ export function getPaymentSuccessMessage(
     case "credit_card":
       return "Chúng tôi sẽ liên hệ để hướng dẫn thanh toán thẻ. Đơn đang chờ xác nhận.";
     case "momo":
-      return "Vui lòng thanh toán qua MoMo và ghi chú mã đơn. Nhân viên sẽ xác nhận trong thời gian sớm nhất.";
+      return "Bạn sẽ được chuyển sang MoMo để thanh toán. Sau khi thanh toán thành công, đơn sẽ được xử lý tự động.";
     case "cod":
     default:
       return "Shipper sẽ giao hàng và bạn thanh toán bằng tiền mặt khi nhận (COD).";

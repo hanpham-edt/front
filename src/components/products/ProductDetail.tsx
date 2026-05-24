@@ -9,10 +9,24 @@ import { addToCart } from "@/store/slices/cartSlice";
 import { useRouter } from "next/navigation";
 import ArticleHtmlContent from "@/components/articles/ArticleHtmlContent";
 import { isHtmlContent } from "@/lib/html-content";
+import { getEffectiveStock } from "@/lib/cart-line";
+import { getProductPrimaryImageUrl } from "@/lib/product-images";
 
 export default function ProductDetail({ product }: { product: Product }) {
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const activeVariants = useMemo(
+    () => (product.variants ?? []).filter((v) => v.isActive),
+    [product.variants],
+  );
+  const hasVariants = activeVariants.length > 0;
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
+    () => (activeVariants.length > 0 ? activeVariants[0].id : null),
+  );
+  const selectedVariant = useMemo(
+    () => activeVariants.find((v) => v.id === selectedVariantId) ?? null,
+    [activeVariants, selectedVariantId],
+  );
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<"description" | "shipping" | "policy">(
     "description",
@@ -25,24 +39,46 @@ export default function ProductDetail({ product }: { product: Product }) {
     }).format(price);
   };
 
-  const isInStock = product.stock > 0;
-  const maxQty = Math.max(1, product.stock || 1);
+  const displayPrice = selectedVariant?.price ?? product.price;
+  const stockAvailable = getEffectiveStock(
+    product,
+    activeVariants,
+    selectedVariant,
+  );
+  const isInStock = stockAvailable > 0;
+  const maxQty = Math.max(1, stockAvailable || 1);
 
   const [activeImage, setActiveImage] = useState(0);
 
   const images = useMemo(() => {
-    const list =
-      product.imageUrls?.filter((u) => u?.trim()) ??
-      (product.imageUrl?.trim() ? [product.imageUrl.trim()] : []);
-    return list;
-  }, [product.imageUrl, product.imageUrls]);
+    const primary = getProductPrimaryImageUrl(product);
+    const fromUrls =
+      product.imageUrls?.map((u) => u?.trim()).filter((u): u is string => !!u) ??
+      [];
+    if (fromUrls.length > 0) return fromUrls;
+    return primary ? [primary] : [];
+  }, [product]);
 
   const handleAddToCart = () => {
-    dispatch(addToCart({ product, quantity }));
+    if (hasVariants && !selectedVariant) return;
+    dispatch(
+      addToCart({
+        product,
+        quantity,
+        variant: selectedVariant,
+      }),
+    );
   };
 
   const handleBuyNow = () => {
-    dispatch(addToCart({ product, quantity }));
+    if (hasVariants && !selectedVariant) return;
+    dispatch(
+      addToCart({
+        product,
+        quantity,
+        variant: selectedVariant,
+      }),
+    );
     router.push("/cart");
   };
 
@@ -119,22 +155,53 @@ export default function ProductDetail({ product }: { product: Product }) {
                   ) : null}
                   <span className="text-gray-300">•</span>
                   <span>
-                    SKU: <span className="font-medium text-gray-800">{product.sku}</span>
+                    SKU:{" "}
+                    <span className="font-medium text-gray-800">
+                      {selectedVariant?.sku ?? product.sku}
+                    </span>
                   </span>
                   <span className="text-gray-300">•</span>
                   <span
                     className={`font-medium ${isInStock ? "text-green-600" : "text-red-600"}`}
                   >
-                    {isInStock ? `Còn hàng (${product.stock})` : "Hết hàng"}
+                    {isInStock
+                      ? `Còn hàng (${stockAvailable})`
+                      : "Hết hàng"}
                   </span>
                 </div>
               </div>
+
+              {hasVariants ? (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-700">Chọn quy cách</p>
+                  <div className="flex flex-wrap gap-2">
+                    {activeVariants.map((v) => (
+                      <button
+                        key={v.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedVariantId(v.id);
+                          setQuantity(1);
+                        }}
+                        className={`rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
+                          selectedVariantId === v.id
+                            ? "border-orange-500 bg-orange-50 text-orange-700"
+                            : "border-gray-200 bg-white text-gray-700 hover:border-orange-300"
+                        }`}
+                      >
+                        {v.name}
+                        {v.stock <= 0 ? " (hết)" : ""}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
 
               {/* Price */}
               <div className="space-y-2">
                 <div className="flex items-center space-x-4">
                   <span className="text-3xl font-bold text-orange-600">
-                    {formatPrice(product.price)}
+                    {formatPrice(displayPrice)}
                   </span>
                 </div>
               </div>

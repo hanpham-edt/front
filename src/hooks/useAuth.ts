@@ -2,7 +2,7 @@ import { useSelector } from "react-redux";
 import { IRootState } from "@/store";
 import { useState } from "react";
 import { authService } from "@/services/api/authService";
-import { LoginDto, RegisterDto } from "@/types/auth-types";
+import { LoginDto, RegisterDto, User } from "@/types/auth-types";
 import { useAppDispatch } from "@/store";
 import { clearAuth, setAuth } from "@/store/slices/authSlice";
 
@@ -23,18 +23,24 @@ export function useAuth() {
     }
   };
 
-  const login = async (loginDto: LoginDto): Promise<boolean> => {
+  const login = async (loginDto: LoginDto): Promise<User | null> => {
     setIsLoading(true);
     setError(null);
     try {
       const response = await authService.login(loginDto);
-      dispatch(setAuth({accessToken: response.accessToken, 
-        refreshToken: response.refreshToken, user: response.user}));
-      return true;
-    } catch (error) {
-     setError(" Please check your email and password " + error);
-     setIsLoading(false);
-      return false;
+      dispatch(
+        setAuth({
+          accessToken: response.accessToken,
+          refreshToken: response.refreshToken,
+          user: response.user,
+        }),
+      );
+      setIsLoading(false);
+      return response.user;
+    } catch (err) {
+      setError(" Please check your email and password " + err);
+      setIsLoading(false);
+      return null;
     }
   };
 

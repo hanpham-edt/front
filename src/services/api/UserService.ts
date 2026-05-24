@@ -27,6 +27,20 @@ export class UserService {
     return response.data;
   }
 
+  static async createAdminUser(payload: {
+    email: string;
+    password: string;
+    firstName?: string;
+    lastName?: string;
+    role?: "USER" | "STAFF" | "ADMIN";
+  }): Promise<Users> {
+    const response = await apiClient.post<Users>(
+      `${this.ENDPOINT}/admin/create`,
+      payload,
+    );
+    return response.data;
+  }
+
   static async getUserById(id: string) {
     const response = await apiClient.get<Users>(`${this.ENDPOINT}/${id}`);
     return response.data;

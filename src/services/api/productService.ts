@@ -36,6 +36,12 @@ export class ProductService {
     if (product.imageUrl !== undefined) payload.imageUrl = product.imageUrl;
     if (product.imageUrls !== undefined) payload.imageUrls = product.imageUrls;
     if (product.isActive !== undefined) payload.isActive = product.isActive;
+    if (product.slug !== undefined) payload.slug = product.slug;
+    if (product.metaTitle !== undefined) payload.metaTitle = product.metaTitle;
+    if (product.metaDescription !== undefined) {
+      payload.metaDescription = product.metaDescription;
+    }
+    if (product.variants !== undefined) payload.variants = product.variants;
 
     const response = await apiClient.patch<Product>(
       `${this.ENDPOINT}/${encodeURIComponent(id.trim())}`,
@@ -46,5 +52,41 @@ export class ProductService {
 
   static async deleteProduct(id: string): Promise<void> {
     await apiClient.delete(`${this.ENDPOINT}/${encodeURIComponent(id.trim())}`);
+  }
+
+  static async adjustStock(
+    id: string,
+    quantity: number,
+    note?: string,
+  ): Promise<Product> {
+    const response = await apiClient.patch<Product>(
+      `${this.ENDPOINT}/${encodeURIComponent(id)}/stock`,
+      { quantity, note },
+    );
+    return response.data;
+  }
+
+  static async getStockMovements(
+    id: string,
+    page = 1,
+    limit = 20,
+  ): Promise<{
+    data: Array<{
+      id: string;
+      type: string;
+      quantity: number;
+      stockBefore: number;
+      stockAfter: number;
+      note: string | null;
+      userEmail: string | null;
+      createdAt: string;
+    }>;
+    meta: { total: number; page: number; limit: number; totalPages: number };
+  }> {
+    const response = await apiClient.get(
+      `${this.ENDPOINT}/${encodeURIComponent(id)}/stock-movements`,
+      { params: { page, limit } },
+    );
+    return response.data;
   }
 }

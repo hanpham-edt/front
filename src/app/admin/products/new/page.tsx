@@ -2,26 +2,25 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, X, Upload } from "lucide-react";
+import { ArrowLeft, Save, X } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 
 import { CreateProduct } from "@/types/product-types";
 import { ProductService } from "@/services/api/productService";
 import { useCategories } from "@/hooks/useCategory";
-import {
-  uploadProductImageFile,
-  isStoredImageUrl,
-} from "@/utils/productImageUpload";
+import { isStoredImageUrl } from "@/utils/productImageUpload";
+import ProductImagesField from "@/components/admin/ProductImagesField";
+import { MEDIA_FOLDERS } from "@/lib/media-folders";
 import RichTextEditor from "@/components/admin/RichTextEditor";
 import {
   getPlainTextLength,
   isEmptyArticleHtml,
 } from "@/lib/html-content";
-import {
-  MAX_PRODUCT_IMAGES,
-  remainingImageSlots,
-} from "@/lib/product-images";
+import ProductVariantsEditor, {
+  buildVariantsPayload,
+  type VariantFormRow,
+} from "@/components/admin/ProductVariantsEditor";
+import CurrencyInput from "@/components/admin/CurrencyInput";
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -29,7 +28,7 @@ export default function NewProductPage() {
   const [imagePreview, setImagePreview] = useState<string[]>([]);
   const [imageNames, setImageNames] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [variantRows, setVariantRows] = useState<VariantFormRow[]>([]);
   const [formData, setFormData] = useState<CreateProduct>({
     name: "",
     sku: "",
@@ -65,55 +64,6 @@ export default function NewProductPage() {
     }));
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const validFiles = files.filter(
-      (file) => file.type.startsWith("image/") && file.size <= 5 * 1024 * 1024, // 5MB limit
-    );
-
-    const slotsLeft = remainingImageSlots(imagePreview.length);
-    if (slotsLeft <= 0) {
-      alert(`Tối đa ${MAX_PRODUCT_IMAGES} hình ảnh cho mỗi sản phẩm`);
-      return;
-    }
-
-    const filesToUpload = validFiles.slice(0, slotsLeft);
-    if (validFiles.length > slotsLeft) {
-      alert(
-        `Chỉ thêm được ${slotsLeft} ảnh nữa (tối đa ${MAX_PRODUCT_IMAGES} ảnh).`,
-      );
-    }
-
-    setIsUploadingImage(true);
-    try {
-      const uploaded: { url: string; name: string }[] = [];
-      for (const file of filesToUpload) {
-        const url = await uploadProductImageFile(file);
-        uploaded.push({ url, name: file.name });
-      }
-      setImagePreview((prev) => {
-        const next = [...prev, ...uploaded.map((u) => u.url)];
-        setFormData((f) => ({ ...f, imageUrl: next[0] ?? "" }));
-        return next;
-      });
-      setImageNames((prev) => [...prev, ...uploaded.map((u) => u.name)]);
-    } catch {
-      alert("Upload ảnh thất bại. Vui lòng thử lại.");
-    } finally {
-      setIsUploadingImage(false);
-      e.target.value = "";
-    }
-  };
-
-  const removeImage = (index: number) => {
-    setImagePreview((prev) => {
-      const next = prev.filter((_, i) => i !== index);
-      setFormData((p) => ({ ...p, imageUrl: next[0] ?? "" }));
-      return next;
-    });
-    setImageNames((prev) => prev.filter((_, i) => i !== index));
-  };
-
   // Create new product
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,10 +86,17 @@ export default function NewProductPage() {
     setIsSubmitting(true);
 
     const imageUrls = imagePreview.filter((u) => isStoredImageUrl(u));
+    const variants = buildVariantsPayload(variantRows);
+    if (variantRows.some((r) => r.name.trim() || r.sku.trim()) && variants.length === 0) {
+      alert("Biến thể cần có tên và SKU hợp lệ.");
+      setIsSubmitting(false);
+      return;
+    }
     await ProductService.createProduct({
       ...formData,
       imageUrl: imageUrls[0] ?? "",
       imageUrls,
+      ...(variants.length > 0 ? { variants } : {}),
     });
     setIsSubmitting(false);
     router.push("/admin/products");
@@ -157,10 +114,10 @@ export default function NewProductPage() {
             </Link>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
-                Chỉnh sửa sản phẩm
+                Thêm sản phẩm mới
               </h1>
               <p className="text-gray-600">
-                Cập nhật thông tin sản phẩm yến sào
+                Tạo sản phẩm yến sào và quy cách bán
               </p>
             </div>
           </div>
@@ -246,15 +203,15 @@ export default function NewProductPage() {
                 >
                   Giá bán (VNĐ) *
                 </label>
-                <input
-                  type="number"
+                <CurrencyInput
                   id="price"
                   name="price"
                   value={formData.price}
-                  onChange={handleInputChange}
+                  onChange={(price) =>
+                    setFormData((prev) => ({ ...prev, price }))
+                  }
                   required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                  placeholder="Nhập giá bán"
+                  placeholder="1.500.000"
                 />
               </div>
               <div>
@@ -278,6 +235,12 @@ export default function NewProductPage() {
             </div>
           </div>
 
+          <ProductVariantsEditor
+            rows={variantRows}
+            onChange={setVariantRows}
+            productSku={formData.sku}
+          />
+
           {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -290,99 +253,64 @@ export default function NewProductPage() {
               }
               minLength={10}
               placeholder="Mô tả chi tiết, thành phần, cách dùng..."
+              mediaFolder={MEDIA_FOLDERS.CONTENT}
             />
           </div>
 
-          {/* Image Upload */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-medium text-gray-700">
               Hình ảnh sản phẩm
             </label>
-            <div className="space-y-4">
-              {/* Upload Area */}
-              <div
-                className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-                  imagePreview.length >= MAX_PRODUCT_IMAGES
-                    ? "border-gray-200 bg-gray-50 opacity-60"
-                    : "border-gray-300 hover:border-orange-400"
-                }`}
-              >
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  disabled={
-                    isUploadingImage ||
-                    imagePreview.length >= MAX_PRODUCT_IMAGES
-                  }
-                  className="hidden"
-                  id="image-upload"
-                />
-                <label
-                  htmlFor="image-upload"
-                  className={
-                    imagePreview.length >= MAX_PRODUCT_IMAGES
-                      ? "cursor-not-allowed"
-                      : "cursor-pointer"
-                  }
-                >
-                  <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-600">
-                    {isUploadingImage
-                      ? "Đang tải ảnh lên..."
-                      : imagePreview.length >= MAX_PRODUCT_IMAGES
-                        ? `Đã đủ ${MAX_PRODUCT_IMAGES} ảnh`
-                        : (
-                          <>
-                            Kéo thả hình ảnh vào đây hoặc{" "}
-                            <span className="text-orange-500 font-medium">
-                              chọn file
-                            </span>
-                          </>
-                        )}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Hỗ trợ: JPG, PNG, GIF. Tối đa 5MB mỗi file. Còn{" "}
-                    {remainingImageSlots(imagePreview.length)}/
-                    {MAX_PRODUCT_IMAGES} ảnh.
-                  </p>
-                </label>
-              </div>
+            <ProductImagesField
+              images={imagePreview}
+              imageNames={imageNames}
+              onChange={(urls, names) => {
+                setImagePreview(urls);
+                setImageNames(names);
+                setFormData((f) => ({ ...f, imageUrl: urls[0] ?? "" }));
+              }}
+              inputId="product-new-image-upload"
+            />
+          </div>
 
-              {/* Image Preview */}
-              {imagePreview.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-3">
-                    Hình ảnh đã chọn:
-                  </h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {imagePreview.map((preview, index) => (
-                      <div key={index} className="relative group">
-                        <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                          <Image
-                            src={preview}
-                            alt={`Preview ${index + 1}`}
-                            width={320}
-                            height={320}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeImage(index)}
-                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                        <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                          {imageNames[index] || `Ảnh ${index + 1}`}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">SEO</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Slug URL
+                </label>
+                <input
+                  name="slug"
+                  value={formData.slug ?? ""}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  placeholder="Tự tạo từ tên nếu để trống"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Meta title
+                </label>
+                <input
+                  name="metaTitle"
+                  value={formData.metaTitle ?? ""}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Meta description
+                </label>
+                <textarea
+                  name="metaDescription"
+                  value={formData.metaDescription ?? ""}
+                  onChange={handleInputChange}
+                  rows={2}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                />
+              </div>
             </div>
           </div>
 

@@ -5,6 +5,8 @@ export interface Article {
   excerpt: string | null;
   content: string;
   imageUrl: string | null;
+  metaTitle: string | null;
+  metaDescription: string | null;
   isPublished: boolean;
   publishedAt: string | null;
   createdAt: string;
@@ -17,6 +19,8 @@ export interface CreateArticle {
   excerpt?: string;
   content: string;
   imageUrl?: string;
+  metaTitle?: string;
+  metaDescription?: string;
   isPublished?: boolean;
   publishedAt?: string;
 }

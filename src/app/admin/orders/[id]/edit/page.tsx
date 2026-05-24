@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import axios from "axios";
-import { ArrowLeft, Loader2, Save } from "lucide-react";
+import { ArrowLeft, Loader2, Printer, Save } from "lucide-react";
 import { orderService } from "@/services/api/orderService";
 import type {
   OrderResponse,
@@ -209,7 +209,15 @@ export default function AdminOrderEditPage() {
             <p className="text-gray-600">Tạo lúc {formatDate(order.createdAt)}</p>
           </div>
         </div>
-        <button
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/admin/orders/${orderId}/print`}
+            className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            <Printer className="h-4 w-4" />
+            In hóa đơn
+          </Link>
+          <button
           type="button"
           disabled={saving}
           onClick={() => void handleSave()}
@@ -222,6 +230,7 @@ export default function AdminOrderEditPage() {
           )}
           Lưu thay đổi
         </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

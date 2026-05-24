@@ -22,6 +22,7 @@ function formatPrice(price: number) {
 function SuccessContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get("orderId");
+  const momoResultCode = searchParams.get("resultCode");
   const { paymentOptions } = usePublicSettings();
   const [order, setOrder] = useState<OrderResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -81,9 +82,33 @@ function SuccessContent() {
         <CheckCircle className="h-10 w-10 text-green-600" />
       </div>
       <h1 className="text-2xl font-bold text-gray-900 mb-2">Đặt hàng thành công</h1>
+      {momoResultCode && momoResultCode !== "0" ? (
+        <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          MoMo báo thanh toán chưa hoàn tất (mã {momoResultCode}). Bạn có thể
+          thử lại từ đơn hàng hoặc chọn phương thức khác — liên hệ shop nếu đã
+          bị trừ tiền.
+        </p>
+      ) : null}
       <p className="text-gray-600 mb-6">
-        Cảm ơn bạn đã mua hàng. Đơn đang ở trạng thái{" "}
-        <span className="font-medium text-gray-800">chờ xác nhận</span>.
+        Cảm ơn bạn đã mua hàng.
+        {order.paymentMethod === "momo" &&
+        order.paymentStatus === "COMPLETED" ? (
+          <>
+            {" "}
+            Thanh toán MoMo đã được xác nhận, đơn đang được xử lý.
+          </>
+        ) : order.paymentMethod === "momo" ? (
+          <>
+            {" "}
+            Nếu đã thanh toán MoMo, trạng thái sẽ cập nhật trong giây lát.
+          </>
+        ) : (
+          <>
+            {" "}
+            Đơn đang ở trạng thái{" "}
+            <span className="font-medium text-gray-800">chờ xác nhận</span>.
+          </>
+        )}
       </p>
       <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-left text-sm mb-8 space-y-2">
         <p>

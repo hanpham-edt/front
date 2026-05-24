@@ -28,6 +28,8 @@ export default function EditArticlePage() {
         imageUrl: a.imageUrl ?? "",
         isPublished: a.isPublished,
         publishedAt: a.publishedAt ?? undefined,
+        metaTitle: a.metaTitle ?? "",
+        metaDescription: a.metaDescription ?? "",
       });
     } catch {
       setInitial(null);

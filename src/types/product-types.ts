@@ -1,3 +1,14 @@
+export interface ProductVariant {
+  id: string;
+  productId: string;
+  name: string;
+  sku: string;
+  price: number;
+  stock: number;
+  sortOrder: number;
+  isActive: boolean;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -10,6 +21,10 @@ export interface Product {
   isActive: boolean;
   category: string | null;
   categoryId: string;
+  slug?: string | null;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+  variants?: ProductVariant[];
   updatedAt: string;
 }
 
@@ -23,6 +38,18 @@ export interface CreateProduct {
   imageUrls?: string[];
   categoryId: string;
   isActive: boolean;
+  slug?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  variants?: Array<{
+    id?: string;
+    name: string;
+    sku: string;
+    price: number;
+    stock: number;
+    sortOrder?: number;
+    isActive?: boolean;
+  }>;
 }
 export interface ProductQueryParams {
   page?: number;

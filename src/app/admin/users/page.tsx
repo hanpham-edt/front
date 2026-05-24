@@ -9,6 +9,7 @@ import {
   XCircle,
   ShoppingCart,
   Loader2,
+  Plus,
 } from "lucide-react";
 import Link from "next/link";
 import { useUsers } from "@/hooks/useUsers";
@@ -16,10 +17,12 @@ import { Users } from "@/types/user-types";
 import { UserService } from "@/services/api/UserService";
 import AdminPagination from "@/components/admin/AdminPagination";
 import UserOrderHistory from "@/components/admin/UserOrderHistory";
+import { ROLE_LABELS } from "@/lib/admin-permissions";
 
 const roleOptions = [
   { value: "all", label: "Tất cả" },
   { value: "USER", label: "Khách hàng" },
+  { value: "STAFF", label: "Nhân viên" },
   { value: "ADMIN", label: "Quản trị viên" },
 ];
 
@@ -50,7 +53,7 @@ export default function AdminUsersPage() {
     role:
       selectedRole === "all"
         ? undefined
-        : (selectedRole as "USER" | "ADMIN"),
+        : (selectedRole as "USER" | "STAFF" | "ADMIN"),
   };
 
   useEffect(() => {
@@ -110,12 +113,15 @@ export default function AdminUsersPage() {
               Quản lý tất cả người dùng trong hệ thống
             </p>
           </div>
-          {/* <Link href="/admin/users/new">
-            <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center cursor-pointer">
-              <Plus className="h-4 w-4 mr-2" />
+          <Link href="/admin/users/new">
+            <button
+              type="button"
+              className="flex cursor-pointer items-center rounded-md bg-orange-500 px-4 py-2 font-medium text-white transition-colors hover:bg-orange-600"
+            >
+              <Plus className="mr-2 h-4 w-4" />
               Thêm người dùng
             </button>
-          </Link> */}
+          </Link>
         </div>
       </div>
 
@@ -256,10 +262,14 @@ export default function AdminUsersPage() {
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         user.role === "ADMIN"
                           ? "bg-purple-100 text-purple-800"
-                          : "bg-blue-100 text-blue-800"
+                          : user.role === "STAFF"
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-gray-100 text-gray-800"
                       }`}
                     >
-                      {user.role === "ADMIN" ? "Quản trị viên" : "Khách hàng"}
+                      {user.role && user.role in ROLE_LABELS
+                        ? ROLE_LABELS[user.role as keyof typeof ROLE_LABELS]
+                        : user.role}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -386,9 +396,11 @@ export default function AdminUsersPage() {
                     Vai trò
                   </label>
                   <p className="text-sm text-gray-900">
-                    {selectedUser.role === "ADMIN"
-                      ? "Quản trị viên"
-                      : "Khách hàng"}
+                    {selectedUser.role && selectedUser.role in ROLE_LABELS
+                      ? ROLE_LABELS[
+                          selectedUser.role as keyof typeof ROLE_LABELS
+                        ]
+                      : selectedUser.role}
                   </p>
                 </div>
                 <div>

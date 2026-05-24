@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Plus, Edit, Trash2, Search, Eye, Package, Loader2 } from "lucide-react";
 import { useProducts } from "@/hooks/useProducts";
+import { formatCurrency } from "@/lib/format";
 import { useCategories } from "@/hooks/useCategory";
 //import { ProductService } from "@/services/api/productService";
 import AdminPagination from "@/components/admin/AdminPagination";
@@ -57,13 +58,6 @@ export default function AdminProductsPage() {
     console.log("Deleting product:", productToDelete);
     setShowDeleteModal(false);
     setProductToDelete(null);
-  };
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(price);
   };
 
   return (
@@ -177,7 +171,7 @@ export default function AdminProductsPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Danh mục
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Giá
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -217,9 +211,9 @@ export default function AdminProductsPage() {
                       {product.category ?? "—"}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {formatPrice(product.price)}
+                  <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <div className="text-sm font-medium text-gray-900 tabular-nums">
+                      {formatCurrency(product.price)}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

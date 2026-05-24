@@ -20,7 +20,7 @@ export interface UserQueryParams {
   limit?: number;
   search?: string;
   isActive?: boolean;
-  role?: "USER" | "ADMIN";
+  role?: "USER" | "STAFF" | "ADMIN";
 }
 
 export interface PaginationMeta {

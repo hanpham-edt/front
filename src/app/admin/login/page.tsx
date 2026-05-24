@@ -3,28 +3,42 @@ import { useState, useEffect } from "react";
 import { Lock, Mail, User } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
+import { isAdminPanelRole } from "@/lib/admin-permissions";
+import { useSelector } from "react-redux";
+import type { IRootState } from "@/store";
 
 //import { useRouter } from "next/navigation";
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { isAuthenticated, error, isLoading, login } = useAuth();
+  const { isAuthenticated, error, isLoading, login, logout } = useAuth();
   const router = useRouter();
-  
+  const user = useSelector((s: IRootState) => s.auth.user);
+  const [localError, setLocalError] = useState<string | null>(null);
+
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && user && isAdminPanelRole(user.role)) {
       router.push("/admin");
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = await login({ email, password });
-    if (success) {
-      router.push("/admin");
+    setLocalError(null);
+    const loggedInUser = await login({ email, password });
+    if (!loggedInUser) return;
+    if (!isAdminPanelRole(loggedInUser.role)) {
+      await logout();
+      setLocalError(
+        "Tài khoản này không có quyền vào trang quản trị. Dùng tài khoản Admin hoặc Nhân viên.",
+      );
+      return;
     }
+    router.push("/admin");
   };
+
+  const displayError = localError ?? error;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-700 flex items-center justify-center px-4">
@@ -43,7 +57,7 @@ export default function AdminLoginPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                {error}
+                {displayError}
               </div>
             )}
 
