@@ -1,0 +1,88 @@
+{
+  "common": {
+    "loading": "Đang tải...",
+    "error": "Đã có lỗi xảy ra",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "close": "Đóng",
+    "viewAll": "Xem tất cả",
+    "learnMore": "Tìm hiểu thêm",
+    "customer": "Khách hàng",
+    "product": "Sản phẩm",
+    "account": "Tài khoản",
+    "language": "Ngôn ngữ",
+    "vietnamese": "Tiếng Việt",
+    "english": "English"
+  },
+  "nav": {
+    "home": "Trang Chủ",
+    "about": "Về chúng tôi",
+    "contact": "Liên Hệ",
+    "products": "Sản phẩm",
+    "allProducts": "Tất cả sản phẩm",
+    "knowledge": "Kiến thức",
+    "allKnowledge": "Tất cả kiến thức",
+    "news": "Tin tức",
+    "allNews": "Tất cả tin tức",
+    "login": "Đăng nhập",
+    "register": "Đăng ký",
+    "cart": "Giỏ hàng",
+    "openMenu": "Mở menu",
+    "closeMenu": "Đóng menu",
+    "myOrders": "Đơn hàng của tôi",
+    "updateProfile": "Cập nhật hồ sơ",
+    "changePassword": "Đổi mật khẩu",
+    "logout": "Đăng xuất",
+    "loggingOut": "Đang đăng xuất..."
+  },
+  "chat": {
+    "title": "Chat với chúng tôi",
+    "subtitle": "Chọn kênh bạn muốn nhắn tin",
+    "open": "Mở chat hỗ trợ",
+    "close": "Đóng chat hỗ trợ",
+    "zalo": "Chat Zalo",
+    "facebook": "Facebook Messenger",
+    "whatsapp": "WhatsApp",
+    "sectionTitle": "Nhắn tin nhanh"
+  },
+  "footer": {
+    "quickLinks": "Liên kết nhanh",
+    "home": "Trang chủ",
+    "products": "Sản phẩm",
+    "news": "Tin tức",
+    "about": "Về chúng tôi",
+    "contact": "Liên hệ",
+    "policies": "Chính sách",
+    "noPolicies": "Chưa có trang chính sách",
+    "contactSection": "Liên hệ",
+    "rights": "Tất cả quyền được bảo lưu.",
+    "privacy": "Chính sách bảo mật",
+    "terms": "Điều khoản sử dụng"
+  },
+  "home": {
+    "testimonialsTitle": "Khách Hàng Nói Gì",
+    "testimonialsSubtitle": "Những phản hồi chân thực từ khách hàng đã sử dụng sản phẩm của chúng tôi.",
+    "reviewPrev": "Đánh giá trước",
+    "reviewNext": "Đánh giá sau",
+    "defaultReviewQuote": "Khách hàng đã đánh giá sản phẩm của chúng tôi."
+  },
+  "auth": {
+    "loginTitle": "Đăng nhập",
+    "registerTitle": "Đăng ký"
+  },
+  "products": {
+    "featured": "Sản phẩm nổi bật",
+    "featuredSubtitle": "Những sản phẩm yến sào được khách hàng tin dùng nhất",
+    "addToCart": "Thêm vào giỏ",
+    "outOfStock": "Hết hàng",
+    "searchPlaceholder": "Tìm sản phẩm..."
+  },
+  "cart": {
+    "title": "Giỏ hàng",
+    "empty": "Giỏ hàng trống",
+    "checkout": "Thanh toán",
+    "continueShopping": "Tiếp tục mua sắm",
+    "subtotal": "Tạm tính",
+    "total": "Tổng cộng"
+  }
+}

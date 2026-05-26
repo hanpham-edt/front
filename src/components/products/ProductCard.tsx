@@ -2,21 +2,32 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ShoppingCart, Heart, Eye } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ShoppingCart, Heart, Eye, Check } from "lucide-react";
 import { Product } from "@/types/product-types";
 import Image from "next/image";
 import {
   getProductPrimaryImageUrl,
   isLocalProductImage,
 } from "@/lib/product-images";
+import {
+  isProductPurchasable,
+  productRequiresVariantSelection,
+} from "@/lib/cart-line";
+import { useAppDispatch } from "@/store";
+import { addToCart } from "@/store/slices/cartSlice";
 
 interface ProductCardProps {
   product: Product;
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const dispatch = useAppDispatch();
+  const router = useRouter();
   const [isWishlisted, setIsWishlisted] = useState(false);
-  const isInStock = product.stock > 0;
+  const [added, setAdded] = useState(false);
+  const isInStock = isProductPurchasable(product);
+  const needsVariant = productRequiresVariantSelection(product);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -28,6 +39,22 @@ export default function ProductCard({ product }: ProductCardProps) {
   const imageSrc = getProductPrimaryImageUrl(product);
   const [imageError, setImageError] = useState(false);
   const showImage = Boolean(imageSrc) && !imageError;
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!isInStock) return;
+
+    if (needsVariant) {
+      router.push(`/products/${product.id}`);
+      return;
+    }
+
+    dispatch(addToCart({ product, quantity: 1 }));
+    setAdded(true);
+    window.setTimeout(() => setAdded(false), 2000);
+  };
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-xl bg-white shadow-md ring-1 ring-gray-100 transition-shadow duration-300 hover:shadow-xl">
@@ -57,7 +84,11 @@ export default function ProductCard({ product }: ProductCardProps) {
         <div className="absolute right-3 top-3 z-20 flex flex-col gap-2">
           <button
             type="button"
-            onClick={() => setIsWishlisted(!isWishlisted)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsWishlisted(!isWishlisted);
+            }}
             className={`rounded-full p-2 shadow-md transition-colors ${
               isWishlisted
                 ? "bg-red-500 text-white"
@@ -83,23 +114,17 @@ export default function ProductCard({ product }: ProductCardProps) {
             Hết hàng
           </span>
         )}
-
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/85 via-black/50 to-transparent px-4 pb-4 pt-12">
-          {product.category && (
-            <span className="mb-1 inline-block rounded-full bg-white/20 px-2 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
-              {product.category}
-            </span>
-          )}
-          <h3 className="line-clamp-2 text-base font-semibold leading-snug text-white md:text-lg">
-            {product.name}
-          </h3>
-          <p className="mt-1 text-lg font-bold text-orange-300">
-            {formatPrice(product.price)}
-          </p>
-        </div>
       </div>
 
       <div className="flex flex-1 flex-col p-4">
+        <Link href={`/products/${product.id}`} className="mb-2 block">
+          <h3 className="line-clamp-2 text-base font-semibold leading-snug text-gray-900 transition-colors hover:text-orange-600 md:text-lg">
+            {product.name}
+          </h3>
+        </Link>
+        <p className="mb-2 text-lg font-bold text-orange-600">
+          {formatPrice(product.price)}
+        </p>
         <p
           className={`mb-3 text-sm font-medium ${
             isInStock ? "text-green-600" : "text-red-600"
@@ -112,19 +137,31 @@ export default function ProductCard({ product }: ProductCardProps) {
           <button
             type="button"
             disabled={!isInStock}
-            className={`flex flex-1 items-center justify-center rounded-lg py-2.5 px-3 text-sm font-medium transition-colors ${
-              isInStock
-                ? "cursor-pointer bg-orange-500 text-white hover:bg-orange-600"
-                : "cursor-not-allowed bg-gray-200 text-gray-500"
+            onClick={handleAddToCart}
+            className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2 py-2.5 text-xs font-medium transition-colors sm:px-3 sm:text-sm ${
+              !isInStock
+                ? "cursor-not-allowed bg-gray-200 text-gray-500"
+                : added
+                  ? "cursor-pointer bg-green-600 text-white"
+                  : "cursor-pointer bg-orange-500 text-white hover:bg-orange-600"
             }`}
           >
-            <ShoppingCart className="mr-2 h-4 w-4 shrink-0" />
-            Thêm vào giỏ
+            {added ? (
+              <>
+                <Check className="h-4 w-4 shrink-0" />
+                Đã thêm
+              </>
+            ) : (
+              <>
+                <ShoppingCart className="h-4 w-4 shrink-0" />
+                {needsVariant ? "Chọn quy cách" : "Thêm vào giỏ"}
+              </>
+            )}
           </button>
           <Link href={`/products/${product.id}`} className="shrink-0">
             <button
               type="button"
-              className="rounded-lg border border-orange-500 px-4 py-2.5 text-sm font-medium text-orange-600 transition-colors hover:bg-orange-500 hover:text-white"
+              className="whitespace-nowrap rounded-lg border border-orange-500 px-3 py-2.5 text-xs font-medium text-orange-600 transition-colors hover:bg-orange-500 hover:text-white sm:px-4 sm:text-sm"
             >
               Chi tiết
             </button>

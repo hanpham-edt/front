@@ -2,16 +2,13 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Providers from "@/providers";
+import { getSiteMetadataBase } from "@/lib/seo/metadata";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata: Metadata = {
-  title: "Yến Sào A Phú Hãn - Chất Lượng Cao, Dinh Dưỡng Tốt",
-  description:
-    "Chuyên cung cấp yến sào chất lượng cao, được thu hoạch từ những đảo yến tự nhiên với quy trình chế biến nghiêm ngặt.",
-  keywords:
-    "yến sào, yến sào a phú hãn, yến sào huyết đỏ, yến sào trắng, dinh dưỡng, sức khỏe",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return getSiteMetadataBase();
+}
 
 export default function RootLayout({
   children,
@@ -19,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi">
+    <html suppressHydrationWarning>
       <body className={inter.className}>
         <div className="min-h-screen flex flex-col">
           <Providers>{children}</Providers>

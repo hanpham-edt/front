@@ -1,4 +1,5 @@
 import { apiClient } from "./axios-config";
+import { serializeQueryParams } from "@/lib/query-params";
 import {
   UpdateUserDto,
   UserQueryParams,
@@ -13,7 +14,7 @@ export class UserService {
     params?: UserQueryParams,
   ): Promise<UserResponse | null> {
     const response = await apiClient.get<UserResponse>(this.ENDPOINT, {
-      params: params,
+      params: serializeQueryParams(params),
     });
     return response.data;
   }
@@ -22,7 +23,7 @@ export class UserService {
     params?: UserQueryParams,
   ): Promise<UserResponse | null> {
     const response = await apiClient.get<UserResponse>(this.ENDPOINT, {
-      params: params,
+      params: serializeQueryParams(params),
     });
     return response.data;
   }
@@ -84,5 +85,18 @@ export class UserService {
 
   static async deleteUser(id: string): Promise<void> {
     await apiClient.delete(`${this.ENDPOINT}/${id}`);
+  }
+
+  static async exportUsersCsv(
+    params?: Pick<UserQueryParams, "search" | "isActive" | "role">,
+  ): Promise<Blob> {
+    const { data } = await apiClient.get<Blob>(
+      `${this.ENDPOINT}/admin/export`,
+      {
+        params: serializeQueryParams(params),
+        responseType: "blob",
+      },
+    );
+    return data;
   }
 }

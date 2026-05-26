@@ -9,11 +9,17 @@ export type PaymentMethodCode =
   | "cod"
   | "bank_transfer"
   | "credit_card"
+  | "paypal"
+  | "atm_card"
   | "momo";
 
 export interface CreateOrderPayload {
   items: CreateOrderItemPayload[];
   shippingAddress?: string;
+  recipientName?: string;
+  recipientPhone?: string;
+  recipientAddress?: string;
+  shippingNote?: string;
   paymentMethod: PaymentMethodCode;
   couponCode?: string;
 }
@@ -57,7 +63,9 @@ export interface OrderApiEnvelope {
   success: boolean;
   message?: string;
   data: OrderResponse;
-  /** Có khi thanh toán MoMo — chuyển hướng khách tới URL này */
+  /** URL chuyển sang cổng thanh toán trực tuyến */
+  paymentRedirectUrl?: string;
+  /** Giữ tương thích — trùng paymentRedirectUrl khi chọn MoMo */
   momoPayUrl?: string;
 }
 

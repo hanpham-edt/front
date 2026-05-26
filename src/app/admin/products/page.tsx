@@ -3,7 +3,20 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Plus, Edit, Trash2, Search, Eye, Package, Loader2 } from "lucide-react";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Search,
+  Eye,
+  Package,
+  Loader2,
+  FileUp,
+  Download,
+} from "lucide-react";
+import axios from "axios";
+import ProductCsvImportModal from "@/components/admin/ProductCsvImportModal";
+import { ProductService } from "@/services/api/productService";
 import { useProducts } from "@/hooks/useProducts";
 import { formatCurrency } from "@/lib/format";
 import { useCategories } from "@/hooks/useCategory";
@@ -21,6 +34,8 @@ export default function AdminProductsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
   const [limit, setLimit] = useState(12);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     void getCategories();
@@ -53,6 +68,36 @@ export default function AdminProductsPage() {
     setShowDeleteModal(true);
   };
 
+  const buildExportParams = () => ({
+    search: debouncedSearch || undefined,
+    category: selectedCategory === "all" ? undefined : selectedCategory,
+    isActive: status === "all" ? undefined : status === "active",
+  });
+
+  const handleExportCsv = async () => {
+    setExporting(true);
+    try {
+      const blob = await ProductService.exportProductsCsv(buildExportParams());
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `san-pham-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: unknown) {
+      let msg = "Không xuất được file CSV. Vui lòng thử lại.";
+      if (axios.isAxiosError(e)) {
+        const data = e.response?.data as { message?: string | string[] } | undefined;
+        const m = data?.message;
+        if (typeof m === "string") msg = m;
+        else if (Array.isArray(m)) msg = m.join(", ");
+      }
+      alert(msg);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const confirmDelete = () => {
     // In real app, this would call API to delete product
     console.log("Deleting product:", productToDelete);
@@ -70,12 +115,35 @@ export default function AdminProductsPage() {
             </h1>
             <p className="text-gray-600">Quản lý tất cả sản phẩm yến sào</p>
           </div>
-          <Link href="/admin/products/new">
-            <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center cursor-pointer">
-              <Plus className="h-4 w-4 mr-2" />
-              Thêm sản phẩm
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void handleExportCsv()}
+              disabled={exporting}
+              className="flex cursor-pointer items-center rounded-md border border-gray-300 bg-white px-4 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+            >
+              {exporting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              Xuất CSV
             </button>
-          </Link>
+            <button
+              type="button"
+              onClick={() => setShowImportModal(true)}
+              className="flex cursor-pointer items-center rounded-md border border-gray-300 bg-white px-4 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              <FileUp className="mr-2 h-4 w-4" />
+              Import CSV
+            </button>
+            <Link href="/admin/products/new">
+              <button className="flex cursor-pointer items-center rounded-md bg-orange-500 px-4 py-2 font-medium text-white transition-colors hover:bg-orange-600">
+                <Plus className="mr-2 h-4 w-4" />
+                Thêm sản phẩm
+              </button>
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -280,6 +348,20 @@ export default function AdminProductsPage() {
           }}
         />
       </div>
+
+      <ProductCsvImportModal
+        open={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImported={() => {
+          void getProducts({
+            page,
+            limit,
+            search: debouncedSearch,
+            category: selectedCategory === "all" ? undefined : selectedCategory,
+            isActive: status === "all" ? undefined : status === "active",
+          });
+        }}
+      />
 
       {/* Delete Modal */}
       {showDeleteModal && (

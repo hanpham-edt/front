@@ -68,3 +68,20 @@ export interface ProductResponse {
   data: Product[];
   meta: PaginationMeta;
 }
+
+export type ProductImportRowResult = {
+  row: number;
+  sku?: string;
+  name?: string;
+  status: "created" | "skipped" | "error";
+  message?: string;
+  productId?: string;
+};
+
+export interface ProductImportResult {
+  total: number;
+  created: number;
+  skipped: number;
+  failed: number;
+  results: ProductImportRowResult[];
+}

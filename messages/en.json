@@ -1,0 +1,88 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "viewAll": "View all",
+    "learnMore": "Learn more",
+    "customer": "Customer",
+    "product": "Product",
+    "account": "Account",
+    "language": "Language",
+    "vietnamese": "Tiếng Việt",
+    "english": "English"
+  },
+  "nav": {
+    "home": "Home",
+    "about": "About Us",
+    "contact": "Contact",
+    "products": "Products",
+    "allProducts": "All products",
+    "knowledge": "Knowledge",
+    "allKnowledge": "All articles",
+    "news": "News",
+    "allNews": "All news",
+    "login": "Log in",
+    "register": "Sign up",
+    "cart": "Cart",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "myOrders": "My orders",
+    "updateProfile": "Update profile",
+    "changePassword": "Change password",
+    "logout": "Log out",
+    "loggingOut": "Signing out..."
+  },
+  "chat": {
+    "title": "Chat with us",
+    "subtitle": "Choose your preferred channel",
+    "open": "Open support chat",
+    "close": "Close support chat",
+    "zalo": "Chat on Zalo",
+    "facebook": "Facebook Messenger",
+    "whatsapp": "WhatsApp",
+    "sectionTitle": "Quick messaging"
+  },
+  "footer": {
+    "quickLinks": "Quick links",
+    "home": "Home",
+    "products": "Products",
+    "news": "News",
+    "about": "About us",
+    "contact": "Contact",
+    "policies": "Policies",
+    "noPolicies": "No policy pages yet",
+    "contactSection": "Contact",
+    "rights": "All rights reserved.",
+    "privacy": "Privacy policy",
+    "terms": "Terms of use"
+  },
+  "home": {
+    "testimonialsTitle": "What Our Customers Say",
+    "testimonialsSubtitle": "Genuine feedback from customers who have tried our bird's nest products.",
+    "reviewPrev": "Previous review",
+    "reviewNext": "Next review",
+    "defaultReviewQuote": "This customer reviewed our product."
+  },
+  "auth": {
+    "loginTitle": "Log in",
+    "registerTitle": "Sign up"
+  },
+  "products": {
+    "featured": "Featured products",
+    "featuredSubtitle": "Our most trusted bird's nest products",
+    "addToCart": "Add to cart",
+    "outOfStock": "Out of stock",
+    "searchPlaceholder": "Search products..."
+  },
+  "cart": {
+    "title": "Shopping cart",
+    "empty": "Your cart is empty",
+    "checkout": "Checkout",
+    "continueShopping": "Continue shopping",
+    "subtotal": "Subtotal",
+    "total": "Total"
+  }
+}

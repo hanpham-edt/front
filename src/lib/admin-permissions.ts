@@ -109,7 +109,24 @@ export const ADMIN_NAV_ITEMS: Array<{
   },
   { name: "Audit logs", href: "/admin/audit-logs", permission: ADMIN_PERMISSIONS.AUDIT_VIEW },
   { name: "Settings", href: "/admin/settings", permission: ADMIN_PERMISSIONS.SETTINGS_MANAGE },
+  {
+    name: "Chính sách",
+    href: "/admin/policies",
+    permission: ADMIN_PERMISSIONS.SETTINGS_MANAGE,
+  },
 ];
+
+/** Trang tài khoản cá nhân — mọi ADMIN/STAFF đều truy cập được */
+export const ADMIN_SELF_ACCOUNT_PATHS = [
+  "/admin/users/profile",
+  "/admin/users/change-password",
+] as const;
+
+export function isAdminSelfAccountPath(pathname: string): boolean {
+  return ADMIN_SELF_ACCOUNT_PATHS.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  );
+}
 
 /** Route prefix → permission cần để truy cập */
 export const ADMIN_ROUTE_PERMISSIONS: Array<{
@@ -129,10 +146,15 @@ export const ADMIN_ROUTE_PERMISSIONS: Array<{
   { prefix: "/admin/media", permission: ADMIN_PERMISSIONS.MEDIA_MANAGE },
   { prefix: "/admin/audit-logs", permission: ADMIN_PERMISSIONS.AUDIT_VIEW },
   { prefix: "/admin/settings", permission: ADMIN_PERMISSIONS.SETTINGS_MANAGE },
+  { prefix: "/admin/policies", permission: ADMIN_PERMISSIONS.SETTINGS_MANAGE },
   { prefix: "/admin", permission: ADMIN_PERMISSIONS.DASHBOARD_VIEW },
 ];
 
 export function permissionForAdminPath(pathname: string): AdminPermission | null {
+  if (isAdminSelfAccountPath(pathname)) {
+    return null;
+  }
+
   const sorted = [...ADMIN_ROUTE_PERMISSIONS].sort(
     (a, b) => b.prefix.length - a.prefix.length,
   );

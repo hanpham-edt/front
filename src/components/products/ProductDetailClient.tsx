@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Breadcrumbs from "./Breadcrumbs";
 import ProductDetail from "./ProductDetail";
 import ProductReviews from "./ProductReviews";
+import SimilarProductsSlider from "./SimilarProductsSlider";
 
 export default function ProductDetailClient({
   productId,
@@ -52,6 +53,10 @@ export default function ProductDetailClient({
       {/* Breadcrumb */}
       <Breadcrumbs productName={product.name} />
       <ProductDetail product={product} />
+      <SimilarProductsSlider
+        productId={product.id}
+        categoryId={product.categoryId}
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         <ProductReviews productId={product.id} productName={product.name} />
       </div>

@@ -10,6 +10,8 @@ export const articleService = {
     page?: number;
     limit?: number;
     search?: string;
+    topicSlug?: string;
+    topicId?: string;
   }): Promise<ArticleListResponse> {
     const { data } = await apiClient.get<ArticleListResponse>("/articles", {
       params,
@@ -26,6 +28,8 @@ export const articleService = {
     page?: number;
     limit?: number;
     search?: string;
+    topicSlug?: string;
+    topicId?: string;
   }): Promise<ArticleListResponse> {
     const { data } = await apiClient.get<ArticleListResponse>(
       "/articles/admin/all",

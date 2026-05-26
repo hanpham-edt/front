@@ -30,11 +30,18 @@ function unwrap(res: OrderApiEnvelope): OrderResponse {
 export const orderService = {
   async createOrder(
     body: CreateOrderPayload,
-  ): Promise<{ order: OrderResponse; momoPayUrl?: string }> {
+  ): Promise<{
+    order: OrderResponse;
+    paymentRedirectUrl?: string;
+    momoPayUrl?: string;
+  }> {
     const { data } = await apiClient.post<OrderApiEnvelope>("/orders", body);
+    const redirect =
+      data.paymentRedirectUrl ?? data.momoPayUrl;
     return {
       order: unwrap(data),
-      momoPayUrl: data.momoPayUrl,
+      paymentRedirectUrl: redirect,
+      momoPayUrl: data.momoPayUrl ?? redirect,
     };
   },
 

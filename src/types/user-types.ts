@@ -3,6 +3,9 @@ export interface Users {
   email: string;
   firstName?: string;
   lastName?: string;
+  phone?: string | null;
+  shippingAddress?: string | null;
+  shippingRecipientName?: string | null;
   role?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -12,6 +15,10 @@ export interface UpdateUserDto {
   email?: string;
   firstName?: string;
   lastName?: string;
+  phone?: string;
+  shippingAddress?: string;
+  shippingRecipientName?: string;
+  role?: "USER" | "STAFF" | "ADMIN";
   isActive?: boolean;
 }
 

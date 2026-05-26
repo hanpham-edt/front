@@ -1,13 +1,19 @@
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("vi-VN", {
+import type { Locale } from "@/i18n/routing";
+
+function intlLocale(locale?: Locale): string {
+  return locale === "en" ? "en-US" : "vi-VN";
+}
+
+export function formatCurrency(amount: number, locale?: Locale): string {
+  return new Intl.NumberFormat(intlLocale(locale), {
     style: "currency",
     currency: "VND",
     maximumFractionDigits: 0,
   }).format(amount);
 }
 
-export function formatNumber(value: number): string {
-  return new Intl.NumberFormat("vi-VN").format(value);
+export function formatNumber(value: number, locale?: Locale): string {
+  return new Intl.NumberFormat(intlLocale(locale)).format(value);
 }
 
 /** Chuỗi chỉ còn chữ số → số nguyên VND (dùng cho ô nhập giá). */

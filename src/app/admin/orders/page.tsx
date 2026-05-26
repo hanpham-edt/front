@@ -45,7 +45,9 @@ const PAYMENT_METHOD_FILTER: { value: "" | PaymentMethodCode; label: string }[] 
     { value: "", label: "Tất cả PT" },
     { value: "cod", label: "COD" },
     { value: "bank_transfer", label: "Chuyển khoản" },
-    { value: "credit_card", label: "Thẻ" },
+    { value: "credit_card", label: "Visa/MC" },
+    { value: "paypal", label: "PayPal" },
+    { value: "atm_card", label: "ATM" },
     { value: "momo", label: "MoMo" },
   ];
 

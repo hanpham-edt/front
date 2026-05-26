@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import {
   Save,
@@ -9,6 +10,8 @@ import {
   CreditCard,
   Truck,
   Bell,
+  KeyRound,
+  UserCircle,
 } from 'lucide-react';
 import { settingsService } from '@/services/api/settingsService';
 import type { AdminSettingsForm } from '@/types/settings-types';
@@ -34,6 +37,7 @@ export default function AdminSettingsPage() {
   const [abandonedCartSettings, setAbandonedCartSettings] = useState(
     emptyForm.abandonedCart,
   );
+  const [securitySettings, setSecuritySettings] = useState(emptyForm.security);
 
   const loadSettings = useCallback(async () => {
     setIsLoading(true);
@@ -48,6 +52,7 @@ export default function AdminSettingsPage() {
       setNotificationSettings(form.notifications);
       setTaxSettings(form.tax);
       setAbandonedCartSettings(form.abandonedCart);
+      setSecuritySettings(form.security);
     } catch {
       setError('Không tải được cài đặt từ server.');
     } finally {
@@ -82,6 +87,7 @@ export default function AdminSettingsPage() {
         notifications: notificationSettings,
         abandonedCart: abandonedCartSettings,
         tax: taxSettings,
+        security: securitySettings,
       };
       const payload = mapFormToSettings(form);
       if (
@@ -98,6 +104,7 @@ export default function AdminSettingsPage() {
       setPaymentSettings(updated.payment);
       setNotificationSettings(updated.notifications);
       setTaxSettings(updated.tax);
+      setSecuritySettings(updated.security);
       setMessage('Đã lưu cài đặt thành công.');
     } catch {
       setError('Lưu cài đặt thất bại. Vui lòng thử lại.');
@@ -239,6 +246,69 @@ export default function AdminSettingsPage() {
                     />
                   </div>
                 </div>
+
+              <div className="border-t border-gray-200 pt-6">
+                <h4 className="mb-1 text-base font-medium text-gray-900">
+                  Chat Zalo, Facebook, WhatsApp
+                </h4>
+                <p className="mb-4 text-sm text-gray-500">
+                  Để trống Zalo/WhatsApp sẽ tự tạo link từ số điện thoại liên hệ.
+                  Facebook cần link Messenger (ví dụ https://m.me/ten-trang).
+                </p>
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <div className="md:col-span-2">
+                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                      Link Zalo
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://zalo.me/0914489077 hoặc OA"
+                      value={generalSettings.zaloUrl}
+                      onChange={(e) =>
+                        setGeneralSettings((prev) => ({
+                          ...prev,
+                          zaloUrl: e.target.value,
+                        }))
+                      }
+                      className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                      Link Facebook Messenger
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://m.me/ten-trang"
+                      value={generalSettings.facebookUrl}
+                      onChange={(e) =>
+                        setGeneralSettings((prev) => ({
+                          ...prev,
+                          facebookUrl: e.target.value,
+                        }))
+                      }
+                      className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                      Link WhatsApp
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://wa.me/84914489077"
+                      value={generalSettings.whatsappUrl}
+                      onChange={(e) =>
+                        setGeneralSettings((prev) => ({
+                          ...prev,
+                          whatsappUrl: e.target.value,
+                        }))
+                      }
+                      className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                </div>
+              </div>
               
             </div>
           )}
@@ -345,19 +415,29 @@ export default function AdminSettingsPage() {
           )}
 
           {activeTab === 'payment' && (
-            <div className="space-y-6">
-              <h3 className="text-lg font-medium text-gray-900">Cài đặt thanh toán</h3>
-              <div className="space-y-4">
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">Cài đặt thanh toán</h3>
+                <p className="mt-1 text-sm text-gray-600">
+                  Bật phương thức khách thấy ở trang checkout. Cổng trực tuyến cần cấu hình thêm trong{" "}
+                  <code className="rounded bg-gray-100 px-1 text-xs">api/.env</code>.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+                  Phương thức offline
+                </h4>
                 {(
                   [
                     ['codEnabled', 'Thanh toán khi nhận hàng (COD)'],
                     ['bankTransferEnabled', 'Chuyển khoản ngân hàng'],
-                    ['creditCardEnabled', 'Thẻ tín dụng'],
-                    ['paypalEnabled', 'PayPal'],
-                    ['momoEnabled', 'Ví MoMo (cổng thanh toán)'],
                   ] as const
                 ).map(([key, label]) => (
-                  <div key={key} className="flex items-center justify-between">
+                  <div
+                    key={key}
+                    className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3"
+                  >
                     <span className="font-medium text-gray-900">{label}</span>
                     <input
                       type="checkbox"
@@ -370,57 +450,159 @@ export default function AdminSettingsPage() {
                   </div>
                 ))}
               </div>
-              <div className="rounded-lg border border-pink-100 bg-pink-50/50 p-4 text-sm text-pink-900">
-                <p className="font-medium">Cấu hình MoMo (Payment Gateway)</p>
-                <p className="mt-1 text-pink-800/90">
-                  <strong>Test miễn phí (chưa có tài khoản):</strong> trong{" "}
-                  <code className="text-xs">api/.env</code> đặt{" "}
-                  <code className="text-xs">MOMO_MOCK=true</code>, bật Ví MoMo
-                  ở trên, restart API — checkout sẽ mở trang giả lập MoMo.
-                </p>
-                <p className="mt-2 text-pink-800/90">
-                  <strong>MoMo thật:</strong>{" "}
-                  <code className="text-xs">MOMO_PARTNER_CODE</code>,{" "}
-                  <code className="text-xs">MOMO_ACCESS_KEY</code>,{" "}
-                  <code className="text-xs">MOMO_SECRET_KEY</code>,{" "}
-                  <code className="text-xs">MOMO_ENDPOINT</code>,{" "}
-                  <code className="text-xs">API_PUBLIC_URL</code> (IPN).
-                </p>
-              </div>
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    MoMo Partner Code
-                  </label>
-                  <input
-                    type="text"
-                    value={paymentSettings.momoPartnerCode}
-                    onChange={(e) =>
-                      setPaymentSettings((p) => ({
-                        ...p,
-                        momoPartnerCode: e.target.value,
-                      }))
-                    }
-                    className="w-full rounded-md border border-gray-300 px-3 py-2"
-                    placeholder="MOMOxxxx"
-                  />
+
+              <div className="space-y-4">
+                <h4 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+                  Cổng thanh toán trực tuyến
+                </h4>
+
+                <div className="rounded-lg border border-indigo-200 bg-indigo-50/40 p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="font-semibold text-gray-900">Visa / Mastercard</p>
+                      <p className="text-sm text-gray-600">Cổng Stripe — thẻ quốc tế</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={paymentSettings.creditCardEnabled}
+                      onChange={(e) =>
+                        setPaymentSettings((p) => ({
+                          ...p,
+                          creditCardEnabled: e.target.checked,
+                        }))
+                      }
+                      className="h-4 w-4 shrink-0 rounded border-gray-300 text-indigo-600"
+                    />
+                  </div>
+                  <p className="mt-3 text-xs text-indigo-900/80">
+                    Test: <code className="rounded bg-white/80 px-1">STRIPE_MOCK=true</code> — Thật:{" "}
+                    <code className="rounded bg-white/80 px-1">STRIPE_SECRET_KEY</code> trong api/.env
+                  </p>
                 </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    MoMo Store ID
-                  </label>
-                  <input
-                    type="text"
-                    value={paymentSettings.momoStoreId}
-                    onChange={(e) =>
-                      setPaymentSettings((p) => ({
-                        ...p,
-                        momoStoreId: e.target.value,
-                      }))
-                    }
-                    className="w-full rounded-md border border-gray-300 px-3 py-2"
-                    placeholder="Mặc định = Partner Code"
-                  />
+
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50/40 p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="font-semibold text-gray-900">Thẻ ATM nội địa</p>
+                      <p className="text-sm text-gray-600">Cổng VNPay — Napas, ATM các ngân hàng VN</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={paymentSettings.atmCardEnabled}
+                      onChange={(e) =>
+                        setPaymentSettings((p) => ({
+                          ...p,
+                          atmCardEnabled: e.target.checked,
+                        }))
+                      }
+                      className="h-4 w-4 shrink-0 rounded border-gray-300 text-emerald-600"
+                    />
+                  </div>
+                  <div className="mt-3">
+                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                      VNPay TMN Code (Terminal)
+                    </label>
+                    <input
+                      type="text"
+                      value={paymentSettings.vnpayTmnCode}
+                      onChange={(e) =>
+                        setPaymentSettings((p) => ({
+                          ...p,
+                          vnpayTmnCode: e.target.value,
+                        }))
+                      }
+                      className="w-full max-w-md rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                      placeholder="VD: 2QXUI4J4"
+                    />
+                  </div>
+                  <p className="mt-2 text-xs text-emerald-900/80">
+                    Test: <code className="rounded bg-white/80 px-1">VNPAY_MOCK=true</code> — Secret:{" "}
+                    <code className="rounded bg-white/80 px-1">VNPAY_HASH_SECRET</code> trong api/.env
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-blue-200 bg-blue-50/40 p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="font-semibold text-gray-900">PayPal</p>
+                      <p className="text-sm text-gray-600">Ví PayPal / thẻ liên kết PayPal</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={paymentSettings.paypalEnabled}
+                      onChange={(e) =>
+                        setPaymentSettings((p) => ({
+                          ...p,
+                          paypalEnabled: e.target.checked,
+                        }))
+                      }
+                      className="h-4 w-4 shrink-0 rounded border-gray-300 text-blue-600"
+                    />
+                  </div>
+                  <p className="mt-3 text-xs text-blue-900/80">
+                    Test: <code className="rounded bg-white/80 px-1">PAYPAL_MOCK=true</code> — Thật:{" "}
+                    <code className="rounded bg-white/80 px-1">PAYPAL_CLIENT_ID</code>,{" "}
+                    <code className="rounded bg-white/80 px-1">PAYPAL_CLIENT_SECRET</code>
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-pink-200 bg-pink-50/40 p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="font-semibold text-gray-900">Ví MoMo</p>
+                      <p className="text-sm text-gray-600">Quét QR / ví MoMo</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={paymentSettings.momoEnabled}
+                      onChange={(e) =>
+                        setPaymentSettings((p) => ({
+                          ...p,
+                          momoEnabled: e.target.checked,
+                        }))
+                      }
+                      className="h-4 w-4 shrink-0 rounded border-gray-300 text-pink-600"
+                    />
+                  </div>
+                  <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                        MoMo Partner Code
+                      </label>
+                      <input
+                        type="text"
+                        value={paymentSettings.momoPartnerCode}
+                        onChange={(e) =>
+                          setPaymentSettings((p) => ({
+                            ...p,
+                            momoPartnerCode: e.target.value,
+                          }))
+                        }
+                        className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                        placeholder="MOMOxxxx"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                        MoMo Store ID
+                      </label>
+                      <input
+                        type="text"
+                        value={paymentSettings.momoStoreId}
+                        onChange={(e) =>
+                          setPaymentSettings((p) => ({
+                            ...p,
+                            momoStoreId: e.target.value,
+                          }))
+                        }
+                        className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                        placeholder="Mặc định = Partner Code"
+                      />
+                    </div>
+                  </div>
+                  <p className="mt-2 text-xs text-pink-900/80">
+                    Test: <code className="rounded bg-white/80 px-1">MOMO_MOCK=true</code> — Secret trong api/.env
+                  </p>
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-6 border-t pt-4 md:grid-cols-2">
@@ -522,10 +704,192 @@ export default function AdminSettingsPage() {
           )}
 
           {activeTab === 'security' && (
-            <div className="space-y-6">
-              <h3 className="text-lg font-medium text-gray-900">Bảo mật</h3>
-              <div className="rounded-md border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
-                Đổi mật khẩu admin tại menu tài khoản. Cài đặt bảo mật nâng cao sẽ bổ sung sau.
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">Bảo mật</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Áp dụng cho đăng ký, đăng nhập, đổi mật khẩu và đặt lại mật khẩu.
+                  Token mới phát hành sau khi lưu sẽ dùng thời hạn mới.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <Link
+                  href="/admin/users/profile"
+                  className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  <UserCircle className="h-4 w-4 text-orange-500" />
+                  Cập nhật hồ sơ của tôi
+                </Link>
+                <Link
+                  href="/admin/users/change-password"
+                  className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  <KeyRound className="h-4 w-4 text-orange-500" />
+                  Đổi mật khẩu của tôi
+                </Link>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+                  Đăng ký & đăng nhập
+                </h4>
+                <div className="space-y-3">
+                  <label className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3">
+                    <div>
+                      <span className="font-medium text-gray-900">
+                        Cho phép đăng ký công khai
+                      </span>
+                      <p className="text-sm text-gray-500">
+                        Khách có thể tạo tài khoản trên website
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={securitySettings.allowPublicRegistration}
+                      onChange={(e) =>
+                        setSecuritySettings((p) => ({
+                          ...p,
+                          allowPublicRegistration: e.target.checked,
+                        }))
+                      }
+                      className="h-4 w-4 rounded border-gray-300 text-orange-600"
+                    />
+                  </label>
+                  <label className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3">
+                    <div>
+                      <span className="font-medium text-gray-900">
+                        Chặn tài khoản không hoạt động
+                      </span>
+                      <p className="text-sm text-gray-500">
+                        User bị tắt &quot;Hoạt động&quot; không đăng nhập được
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={securitySettings.blockInactiveUsers}
+                      onChange={(e) =>
+                        setSecuritySettings((p) => ({
+                          ...p,
+                          blockInactiveUsers: e.target.checked,
+                        }))
+                      }
+                      className="h-4 w-4 rounded border-gray-300 text-orange-600"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="space-y-4 border-t border-gray-100 pt-6">
+                <h4 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+                  Chính sách mật khẩu
+                </h4>
+                <label className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3">
+                  <div>
+                    <span className="font-medium text-gray-900">
+                      Yêu cầu mật khẩu mạnh
+                    </span>
+                    <p className="text-sm text-gray-500">
+                      Chữ hoa, chữ thường, số và ký tự đặc biệt (@$!%*?&)
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={securitySettings.requireStrongPassword}
+                    onChange={(e) =>
+                      setSecuritySettings((p) => ({
+                        ...p,
+                        requireStrongPassword: e.target.checked,
+                      }))
+                    }
+                    className="h-4 w-4 rounded border-gray-300 text-orange-600"
+                  />
+                </label>
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                      Độ dài tối thiểu (ký tự)
+                    </label>
+                    <input
+                      type="number"
+                      min={6}
+                      max={32}
+                      value={securitySettings.minPasswordLength}
+                      onChange={(e) =>
+                        setSecuritySettings((p) => ({
+                          ...p,
+                          minPasswordLength: e.target.value,
+                        }))
+                      }
+                      className="w-full max-w-xs rounded-md border border-gray-300 px-3 py-2"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                      Link đặt lại mật khẩu hết hạn sau (giờ)
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={72}
+                      value={securitySettings.passwordResetExpiryHours}
+                      onChange={(e) =>
+                        setSecuritySettings((p) => ({
+                          ...p,
+                          passwordResetExpiryHours: e.target.value,
+                        }))
+                      }
+                      className="w-full max-w-xs rounded-md border border-gray-300 px-3 py-2"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4 border-t border-gray-100 pt-6">
+                <h4 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+                  Phiên đăng nhập (JWT)
+                </h4>
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                      Access token (phút)
+                    </label>
+                    <input
+                      type="number"
+                      min={5}
+                      max={1440}
+                      value={securitySettings.accessTokenMinutes}
+                      onChange={(e) =>
+                        setSecuritySettings((p) => ({
+                          ...p,
+                          accessTokenMinutes: e.target.value,
+                        }))
+                      }
+                      className="w-full max-w-xs rounded-md border border-gray-300 px-3 py-2"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Hết hạn thì client tự refresh token
+                    </p>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                      Refresh token (ngày)
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={90}
+                      value={securitySettings.refreshTokenDays}
+                      onChange={(e) =>
+                        setSecuritySettings((p) => ({
+                          ...p,
+                          refreshTokenDays: e.target.value,
+                        }))
+                      }
+                      className="w-full max-w-xs rounded-md border border-gray-300 px-3 py-2"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           )}

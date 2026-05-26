@@ -10,6 +10,9 @@ export interface GeneralSettings {
   contactEmail: string;
   contactPhone: string;
   address: string;
+  zaloUrl: string;
+  facebookUrl: string;
+  whatsappUrl: string;
 }
 
 export interface EmailSettings {
@@ -33,9 +36,11 @@ export interface PaymentSettings {
   bankTransferEnabled: boolean;
   creditCardEnabled: boolean;
   paypalEnabled: boolean;
+  atmCardEnabled: boolean;
   momoEnabled: boolean;
   momoPartnerCode: string;
   momoStoreId: string;
+  vnpayTmnCode: string;
   bankAccount: string;
   bankName: string;
 }
@@ -57,6 +62,16 @@ export interface TaxSettings {
   vatRate: string;
 }
 
+export interface SecuritySettings {
+  allowPublicRegistration: boolean;
+  requireStrongPassword: boolean;
+  minPasswordLength: string;
+  passwordResetExpiryHours: string;
+  blockInactiveUsers: boolean;
+  accessTokenMinutes: string;
+  refreshTokenDays: string;
+}
+
 export interface AdminSettingsForm {
   general: GeneralSettings;
   email: EmailSettings;
@@ -65,6 +80,7 @@ export interface AdminSettingsForm {
   notifications: NotificationSettings;
   abandonedCart: AbandonedCartSettings;
   tax: TaxSettings;
+  security: SecuritySettings;
 }
 
 /** Phương thức thanh toán từ GET /settings/public */
@@ -72,6 +88,8 @@ export interface PublicPaymentOptions {
   codEnabled: boolean;
   bankTransferEnabled: boolean;
   creditCardEnabled: boolean;
+  paypalEnabled: boolean;
+  atmCardEnabled: boolean;
   momoEnabled: boolean;
   bankAccount: string;
   bankName: string;
@@ -84,6 +102,9 @@ export interface PublicSiteInfo {
   contactEmail: string;
   contactPhone: string;
   address: string;
+  zaloUrl: string;
+  facebookUrl: string;
+  whatsappUrl: string;
   deliveryTime: string;
   returnPolicy: string;
   shippingFee: number;

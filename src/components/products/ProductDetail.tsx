@@ -28,6 +28,7 @@ export default function ProductDetail({ product }: { product: Product }) {
     [activeVariants, selectedVariantId],
   );
   const [quantity, setQuantity] = useState(1);
+  const [addedToCart, setAddedToCart] = useState(false);
   const [activeTab, setActiveTab] = useState<"description" | "shipping" | "policy">(
     "description",
   );
@@ -68,6 +69,8 @@ export default function ProductDetail({ product }: { product: Product }) {
         variant: selectedVariant,
       }),
     );
+    setAddedToCart(true);
+    window.setTimeout(() => setAddedToCart(false), 2000);
   };
 
   const handleBuyNow = () => {
@@ -84,20 +87,20 @@ export default function ProductDetail({ product }: { product: Product }) {
 
   return (
     <>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-6 py-6">
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
             {/* Product Image */}
             <div className="space-y-4">
               <div className="rounded-lg border border-gray-100 bg-white overflow-hidden">
-                <div className="aspect-square relative bg-gradient-to-br from-yellow-50 to-orange-50">
+                <div className="group relative aspect-square cursor-zoom-in overflow-hidden">
                   {images[activeImage] ? (
                     <Image
                       src={images[activeImage]}
                       alt={product.name}
                       fill
                       priority
-                      className="object-contain p-6"
+                      className="object-contain p-6 transition-all duration-300 ease-out group-hover:scale-110 group-hover:p-3 group-hover:contrast-[1.03] group-hover:saturate-[1.02]"
                       sizes="(min-width: 1024px) 50vw, 100vw"
                     />
                   ) : (
@@ -108,13 +111,13 @@ export default function ProductDetail({ product }: { product: Product }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-4 gap-3">
+              <div className="flex flex-wrap gap-2">
                 {(images.length ? images : [null]).slice(0, 5).map((img, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => img && setActiveImage(idx)}
-                    className={`relative aspect-square overflow-hidden rounded-md border bg-gray-50 ${
+                    className={`relative h-14 w-14 shrink-0 overflow-hidden rounded-md border bg-white sm:h-16 sm:w-16 ${
                       activeImage === idx
                         ? "border-orange-500 ring-2 ring-orange-200"
                         : "border-gray-200"
@@ -126,8 +129,8 @@ export default function ProductDetail({ product }: { product: Product }) {
                         src={img}
                         alt={`${product.name} - ${idx + 1}`}
                         fill
-                        className="object-contain p-2"
-                        sizes="96px"
+                        className="object-contain p-1 transition-transform duration-200 ease-out group-hover/thumb:scale-110"
+                        sizes="64px"
                       />
                     ) : (
                       <div className="h-full w-full flex items-center justify-center text-xs text-gray-400">
@@ -247,14 +250,16 @@ export default function ProductDetail({ product }: { product: Product }) {
                   <button
                     type="button"
                     onClick={handleAddToCart}
-                    disabled={!isInStock}
+                    disabled={!isInStock || (hasVariants && !selectedVariant)}
                     className={`w-full rounded-md px-5 py-3 text-sm font-semibold transition-colors cursor-pointer ${
-                      isInStock
-                        ? "bg-orange-500 text-white hover:bg-orange-600"
-                        : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                      !isInStock || (hasVariants && !selectedVariant)
+                        ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                        : addedToCart
+                          ? "bg-green-600 text-white"
+                          : "bg-orange-500 text-white hover:bg-orange-600"
                     }`}
                   >
-                    Thêm vào giỏ
+                    {addedToCart ? "Đã thêm vào giỏ" : "Thêm vào giỏ"}
                   </button>
                   <button
                     type="button"

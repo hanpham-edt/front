@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { Images, Upload, X } from "lucide-react";
 import MediaPickerModal from "@/components/admin/MediaPickerModal";
@@ -32,8 +32,8 @@ export default function ProductImagesField({
 
   const addImages = (urls: string[], names: string[]) => {
     const slotsLeft = remainingImageSlots(images.length);
-    const nextUrls = [...images, ...urls].slice(0, MAX_PRODUCT_IMAGES);
-    const nextNames = [...imageNames, ...names].slice(0, MAX_PRODUCT_IMAGES);
+    const nextUrls = [...images, ...urls.slice(0, slotsLeft)];
+    const nextNames = [...imageNames, ...names.slice(0, slotsLeft)];
     onChange(nextUrls, nextNames);
   };
 

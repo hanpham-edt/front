@@ -30,6 +30,7 @@ export default function EditArticlePage() {
         publishedAt: a.publishedAt ?? undefined,
         metaTitle: a.metaTitle ?? "",
         metaDescription: a.metaDescription ?? "",
+        topicId: a.topicId ?? undefined,
       });
     } catch {
       setInitial(null);

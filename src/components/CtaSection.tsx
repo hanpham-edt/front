@@ -15,12 +15,12 @@ export default function CtaSection() {
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link href="/products">
-            <button className="bg-white text-orange-500 hover:bg-gray-100 px-8 py-3 rounded-lg font-semibold transition-colors">
+            <button className="bg-white text-orange-500 hover:bg-gray-100 px-8 py-3 rounded-lg font-semibold transition-colors cursor-pointer">
               Mua Sắm Ngay
             </button>
           </Link>
           <Link href="/contact">
-            <button className="border-2 border-white text-white hover:bg-white hover:text-orange-500 px-8 py-3 rounded-lg font-semibold transition-colors">
+            <button className="border-2 border-white text-white hover:bg-white hover:text-orange-500 px-8 py-3 rounded-lg font-semibold transition-colors cursor-pointer">
               Liên Hệ Tư Vấn
             </button>
           </Link>

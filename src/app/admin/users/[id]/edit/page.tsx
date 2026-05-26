@@ -6,12 +6,15 @@ import { ArrowLeft, Save } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useUsers } from "@/hooks/useUsers";
 import { UserService } from "@/services/api/UserService";
+import { useAdminPermissions } from "@/hooks/useAdminPermissions";
+import type { UserRole } from "@/types/auth-types";
 import { useForm } from "react-hook-form";
 
 type FormValues = {
   email: string;
   firstName: string;
   lastName: string;
+  role: UserRole;
   isActive: boolean;
 };
 
@@ -19,6 +22,8 @@ export default function AdminEditUserPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { user, getUser } = useUsers();
+  const { user: currentUser } = useAdminPermissions();
+  const isFullAdmin = currentUser?.role === "ADMIN";
   const params = useParams();
   const paramId = params.id;
   const userId =
@@ -38,6 +43,7 @@ export default function AdminEditUserPage() {
       email: "",
       firstName: "",
       lastName: "",
+      role: "USER",
       isActive: false,
     },
     mode: "onSubmit",
@@ -57,6 +63,7 @@ export default function AdminEditUserPage() {
       email: user.email ?? "",
       firstName: user.firstName ?? "",
       lastName: user.lastName ?? "",
+      role: (user.role as UserRole) ?? "USER",
       isActive: !!user.isActive,
     });
   }, [user, isDirty, reset]);
@@ -69,6 +76,7 @@ export default function AdminEditUserPage() {
         email: values.email,
         firstName: values.firstName || undefined,
         lastName: values.lastName || undefined,
+        role: values.role,
         isActive: values.isActive,
       });
       setMessage("Đã cập nhật người dùng.");
@@ -77,6 +85,7 @@ export default function AdminEditUserPage() {
         email: updated.email ?? values.email,
         firstName: updated.firstName ?? values.firstName,
         lastName: updated.lastName ?? values.lastName,
+        role: (updated.role as UserRole) ?? values.role,
         isActive: !!updated.isActive,
       });
       // Đồng bộ lại dữ liệu từ server (không gây overwrite vì isDirty đang false sau reset).
@@ -104,7 +113,9 @@ export default function AdminEditUserPage() {
           <h1 className="text-2xl font-bold text-gray-900">
             Cập Nhật Người Dùng
           </h1>
-          <p className="text-gray-600">Cập nhật email, họ tên, trạng thái </p>
+          <p className="text-gray-600">
+            Cập nhật email, họ tên, vai trò và trạng thái
+          </p>
         </div>
       </div>
 
@@ -163,6 +174,35 @@ export default function AdminEditUserPage() {
               {...register("lastName")}
               className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
+          </div>
+          <div>
+            <label
+              htmlFor="role"
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
+              Vai trò
+            </label>
+            <select
+              id="role"
+              {...register("role")}
+              disabled={!isFullAdmin && user?.role !== "USER"}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 disabled:text-gray-500"
+            >
+              <option value="USER">Khách hàng</option>
+              {isFullAdmin || user?.role !== "USER" ? (
+                <>
+                  <option value="STAFF">Nhân viên</option>
+                  <option value="ADMIN">Quản trị viên</option>
+                </>
+              ) : null}
+            </select>
+            {!isFullAdmin ? (
+              <p className="mt-1 text-xs text-gray-500">
+                {user?.role !== "USER"
+                  ? "Nhân viên không được đổi vai trò tài khoản quản trị."
+                  : "Nhân viên chỉ được gán vai trò khách hàng."}
+              </p>
+            ) : null}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">

@@ -6,6 +6,13 @@ import type {
 } from "@/types/review-types";
 
 export const reviewService = {
+  async getLatestApproved(limit = 9): Promise<ProductReview[]> {
+    const { data } = await apiClient.get<ProductReview[]>("/reviews/latest", {
+      params: { limit },
+    });
+    return data;
+  },
+
   async getByProduct(productId: string): Promise<ProductReviewSummary> {
     const { data } = await apiClient.get<ProductReviewSummary>(
       `/reviews/product/${productId}`,

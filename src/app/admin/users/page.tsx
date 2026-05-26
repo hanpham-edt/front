@@ -10,7 +10,9 @@ import {
   ShoppingCart,
   Loader2,
   Plus,
+  Download,
 } from "lucide-react";
+import axios from "axios";
 import Link from "next/link";
 import { useUsers } from "@/hooks/useUsers";
 import { Users } from "@/types/user-types";
@@ -44,6 +46,7 @@ export default function AdminUsersPage() {
   const [status, setStatus] = useState<"all" | "active" | "inactive">("all");
   const [selectedUser, setSelectedUser] = useState<Users | null>(null);
   const [limit, setLimit] = useState(12);
+  const [exporting, setExporting] = useState(false);
 
   const fetchParams = {
     page,
@@ -101,6 +104,39 @@ export default function AdminUsersPage() {
     setShowUserModal(true);
   };
 
+  const buildExportParams = () => ({
+    search: debouncedSearch || undefined,
+    isActive: status === "all" ? undefined : status === "active",
+    role:
+      selectedRole === "all"
+        ? undefined
+        : (selectedRole as "USER" | "STAFF" | "ADMIN"),
+  });
+
+  const handleExportCsv = async () => {
+    setExporting(true);
+    try {
+      const blob = await UserService.exportUsersCsv(buildExportParams());
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `nguoi-dung-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: unknown) {
+      let msg = "Không xuất được file CSV. Vui lòng thử lại.";
+      if (axios.isAxiosError(e)) {
+        const data = e.response?.data as { message?: string | string[] } | undefined;
+        const m = data?.message;
+        if (typeof m === "string") msg = m;
+        else if (Array.isArray(m)) msg = m.join(", ");
+      }
+      alert(msg);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div>
       <div className="mb-8">
@@ -113,15 +149,30 @@ export default function AdminUsersPage() {
               Quản lý tất cả người dùng trong hệ thống
             </p>
           </div>
-          <Link href="/admin/users/new">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              className="flex cursor-pointer items-center rounded-md bg-orange-500 px-4 py-2 font-medium text-white transition-colors hover:bg-orange-600"
+              onClick={() => void handleExportCsv()}
+              disabled={exporting}
+              className="flex cursor-pointer items-center rounded-md border border-gray-300 bg-white px-4 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
             >
-              <Plus className="mr-2 h-4 w-4" />
-              Thêm người dùng
+              {exporting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              Xuất CSV
             </button>
-          </Link>
+            <Link href="/admin/users/new">
+              <button
+                type="button"
+                className="flex cursor-pointer items-center rounded-md bg-orange-500 px-4 py-2 font-medium text-white transition-colors hover:bg-orange-600"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Thêm người dùng
+              </button>
+            </Link>
+          </div>
         </div>
       </div>
 

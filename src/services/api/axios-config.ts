@@ -10,7 +10,12 @@ const PUBLIC_AUTH_PATHS = [
   "/auth/reset-password",
 ];
 
-const PUBLIC_READ_PATHS = ["/heros", "/settings/public"];
+const PUBLIC_READ_PATHS = [
+  "/heros",
+  "/settings/public",
+  "/reviews/latest",
+  "/reviews/product/",
+];
 
 function isPublicAuthRequest(url?: string): boolean {
   if (!url) return false;
@@ -77,6 +82,13 @@ async function refreshAccessToken(): Promise<{
   return refreshPromise;
 }
 
+function localePathPrefix(pathname: string): string {
+  if (pathname === "/en" || pathname.startsWith("/en/")) {
+    return "/en";
+  }
+  return "";
+}
+
 function redirectToLogin() {
   store.dispatch(clearAuth());
   if (typeof window === "undefined") return;
@@ -85,7 +97,8 @@ function redirectToLogin() {
   if (path.startsWith("/admin")) {
     window.location.href = "/admin/login";
   } else {
-    window.location.href = `/auth/login?returnUrl=${returnUrl}`;
+    const prefix = localePathPrefix(path);
+    window.location.href = `${prefix}/auth/login?returnUrl=${returnUrl}`;
   }
 }
 

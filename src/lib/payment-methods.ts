@@ -1,11 +1,20 @@
 import type { PublicPaymentOptions } from "@/types/settings-types";
-import { Banknote, Building2, CreditCard, Smartphone } from "lucide-react";
+import {
+  Banknote,
+  Building2,
+  CreditCard,
+  Landmark,
+  Smartphone,
+  Wallet,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export type PaymentMethodCode =
   | "cod"
   | "bank_transfer"
   | "credit_card"
+  | "paypal"
+  | "atm_card"
   | "momo";
 
 export interface PaymentMethodOption {
@@ -30,10 +39,24 @@ const ALL_METHODS: PaymentMethodOption[] = [
   },
   {
     code: "credit_card",
-    label: "Thẻ tín dụng / Ghi nợ",
+    label: "Thẻ Visa / Mastercard",
     description:
-      "Nhân viên sẽ liên hệ hướng dẫn thanh toán qua cổng thẻ (đang triển khai).",
+      "Thanh toán trực tuyến qua Stripe — thẻ tín dụng hoặc ghi nợ quốc tế.",
     icon: CreditCard,
+  },
+  {
+    code: "paypal",
+    label: "PayPal",
+    description:
+      "Thanh toán bằng tài khoản PayPal hoặc thẻ liên kết PayPal.",
+    icon: Wallet,
+  },
+  {
+    code: "atm_card",
+    label: "Thẻ ATM nội địa",
+    description:
+      "Thanh toán qua VNPay — thẻ ATM các ngân hàng Việt Nam (Napas).",
+    icon: Landmark,
   },
   {
     code: "momo",
@@ -51,6 +74,8 @@ const SETTING_KEY_BY_CODE: Record<
   cod: "codEnabled",
   bank_transfer: "bankTransferEnabled",
   credit_card: "creditCardEnabled",
+  paypal: "paypalEnabled",
+  atm_card: "atmCardEnabled",
   momo: "momoEnabled",
 };
 
@@ -74,7 +99,11 @@ export function getPaymentMethodShortLabel(
     case "bank_transfer":
       return "Chuyển khoản";
     case "credit_card":
-      return "Thẻ tín dụng";
+      return "Visa/MC";
+    case "paypal":
+      return "PayPal";
+    case "atm_card":
+      return "ATM nội địa";
     case "momo":
       return "MoMo";
     default:
@@ -133,10 +162,18 @@ export const PAYMENT_STATUS_OPTIONS: {
 export function needsPaymentConfirmation(
   method: string | null | undefined,
 ): boolean {
+  return method === "bank_transfer";
+}
+
+/** Phương thức chuyển hướng sang cổng thanh toán sau khi đặt hàng */
+export function isOnlineGatewayRedirect(
+  method: string | null | undefined,
+): boolean {
   return (
-    method === "bank_transfer" ||
     method === "momo" ||
-    method === "credit_card"
+    method === "paypal" ||
+    method === "credit_card" ||
+    method === "atm_card"
   );
 }
 
@@ -150,9 +187,13 @@ export function getPaymentSuccessMessage(
     case "bank_transfer":
       return `Vui lòng chuyển khoản đến ${bankName ?? "ngân hàng"} — STK ${bankAccount ?? "—"}, nội dung: ${orderNumber}. Đơn sẽ được xử lý sau khi chúng tôi xác nhận thanh toán.`;
     case "credit_card":
-      return "Chúng tôi sẽ liên hệ để hướng dẫn thanh toán thẻ. Đơn đang chờ xác nhận.";
+      return "Thanh toán thẻ quốc tế đã được ghi nhận hoặc đang xử lý. Đơn sẽ được xác nhận tự động.";
+    case "paypal":
+      return "Thanh toán PayPal đã được ghi nhận hoặc đang xử lý. Đơn sẽ được xác nhận tự động.";
+    case "atm_card":
+      return "Thanh toán thẻ ATM nội địa đã được ghi nhận hoặc đang xử lý qua VNPay.";
     case "momo":
-      return "Bạn sẽ được chuyển sang MoMo để thanh toán. Sau khi thanh toán thành công, đơn sẽ được xử lý tự động.";
+      return "Thanh toán MoMo đã được ghi nhận hoặc đang xử lý. Đơn sẽ được xác nhận tự động.";
     case "cod":
     default:
       return "Shipper sẽ giao hàng và bạn thanh toán bằng tiền mặt khi nhận (COD).";

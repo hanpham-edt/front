@@ -12,6 +12,9 @@ const DEFAULT_FORM: AdminSettingsForm = {
     contactEmail: "info@yensaopremium.com",
     contactPhone: "+84 123 456 789",
     address: "123 Đường ABC, Quận 1, TP.HCM, Việt Nam",
+    zaloUrl: "",
+    facebookUrl: "",
+    whatsappUrl: "",
   },
   email: {
     smtpHost: "smtp.gmail.com",
@@ -32,9 +35,11 @@ const DEFAULT_FORM: AdminSettingsForm = {
     bankTransferEnabled: true,
     creditCardEnabled: true,
     paypalEnabled: false,
+    atmCardEnabled: false,
     momoEnabled: false,
     momoPartnerCode: "",
     momoStoreId: "",
+    vnpayTmnCode: "",
     bankAccount: "1234567890",
     bankName: "Vietcombank",
   },
@@ -51,6 +56,15 @@ const DEFAULT_FORM: AdminSettingsForm = {
   tax: {
     vatEnabled: true,
     vatRate: "8",
+  },
+  security: {
+    allowPublicRegistration: true,
+    requireStrongPassword: true,
+    minPasswordLength: "8",
+    passwordResetExpiryHours: "1",
+    blockInactiveUsers: true,
+    accessTokenMinutes: "15",
+    refreshTokenDays: "7",
   },
 };
 
@@ -69,6 +83,9 @@ export function mapSettingsToForm(settings: SettingsMap): AdminSettingsForm {
       contactEmail: settings["general.contactEmail"] ?? d.general.contactEmail,
       contactPhone: settings["general.contactPhone"] ?? d.general.contactPhone,
       address: settings["general.address"] ?? d.general.address,
+      zaloUrl: settings["social.zaloUrl"] ?? d.general.zaloUrl,
+      facebookUrl: settings["social.facebookUrl"] ?? d.general.facebookUrl,
+      whatsappUrl: settings["social.whatsappUrl"] ?? d.general.whatsappUrl,
     },
     email: {
       smtpHost: settings["email.smtpHost"] ?? d.email.smtpHost,
@@ -100,6 +117,10 @@ export function mapSettingsToForm(settings: SettingsMap): AdminSettingsForm {
         settings["payment.paypalEnabled"],
         d.payment.paypalEnabled,
       ),
+      atmCardEnabled: boolFromString(
+        settings["payment.atmCardEnabled"],
+        d.payment.atmCardEnabled,
+      ),
       momoEnabled: boolFromString(
         settings["payment.momoEnabled"],
         d.payment.momoEnabled,
@@ -107,6 +128,8 @@ export function mapSettingsToForm(settings: SettingsMap): AdminSettingsForm {
       momoPartnerCode:
         settings["payment.momoPartnerCode"] ?? d.payment.momoPartnerCode,
       momoStoreId: settings["payment.momoStoreId"] ?? d.payment.momoStoreId,
+      vnpayTmnCode:
+        settings["payment.vnpayTmnCode"] ?? d.payment.vnpayTmnCode,
       bankAccount: settings["payment.bankAccount"] ?? d.payment.bankAccount,
       bankName: settings["payment.bankName"] ?? d.payment.bankName,
     },
@@ -141,6 +164,29 @@ export function mapSettingsToForm(settings: SettingsMap): AdminSettingsForm {
       vatEnabled: boolFromString(settings["tax.vatEnabled"], d.tax.vatEnabled),
       vatRate: settings["tax.vatRate"] ?? d.tax.vatRate,
     },
+    security: {
+      allowPublicRegistration: boolFromString(
+        settings["security.allowPublicRegistration"],
+        d.security.allowPublicRegistration,
+      ),
+      requireStrongPassword: boolFromString(
+        settings["security.requireStrongPassword"],
+        d.security.requireStrongPassword,
+      ),
+      minPasswordLength:
+        settings["security.minPasswordLength"] ?? d.security.minPasswordLength,
+      passwordResetExpiryHours:
+        settings["security.passwordResetExpiryHours"] ??
+        d.security.passwordResetExpiryHours,
+      blockInactiveUsers: boolFromString(
+        settings["security.blockInactiveUsers"],
+        d.security.blockInactiveUsers,
+      ),
+      accessTokenMinutes:
+        settings["security.accessTokenMinutes"] ?? d.security.accessTokenMinutes,
+      refreshTokenDays:
+        settings["security.refreshTokenDays"] ?? d.security.refreshTokenDays,
+    },
   };
 }
 
@@ -150,6 +196,9 @@ const DEFAULT_PUBLIC: PublicSiteInfo = {
   contactEmail: DEFAULT_FORM.general.contactEmail,
   contactPhone: DEFAULT_FORM.general.contactPhone,
   address: DEFAULT_FORM.general.address,
+  zaloUrl: DEFAULT_FORM.general.zaloUrl,
+  facebookUrl: DEFAULT_FORM.general.facebookUrl,
+  whatsappUrl: DEFAULT_FORM.general.whatsappUrl,
   deliveryTime: DEFAULT_FORM.shipping.deliveryTime,
   returnPolicy: DEFAULT_FORM.shipping.returnPolicy,
   shippingFee: Number(DEFAULT_FORM.shipping.shippingFee) || 50_000,
@@ -173,6 +222,14 @@ export function mapPublicSettingsToPaymentOptions(
       settings["payment.creditCardEnabled"],
       d.creditCardEnabled,
     ),
+    paypalEnabled: boolFromString(
+      settings["payment.paypalEnabled"],
+      d.paypalEnabled,
+    ),
+    atmCardEnabled: boolFromString(
+      settings["payment.atmCardEnabled"],
+      d.atmCardEnabled,
+    ),
     momoEnabled: boolFromString(settings["payment.momoEnabled"], d.momoEnabled),
     bankAccount: settings["payment.bankAccount"] ?? d.bankAccount,
     bankName: settings["payment.bankName"] ?? d.bankName,
@@ -191,6 +248,9 @@ export function mapPublicSettingsToSiteInfo(
     contactPhone:
       settings["general.contactPhone"] ?? DEFAULT_PUBLIC.contactPhone,
     address: settings["general.address"] ?? DEFAULT_PUBLIC.address,
+    zaloUrl: settings["social.zaloUrl"] ?? DEFAULT_PUBLIC.zaloUrl,
+    facebookUrl: settings["social.facebookUrl"] ?? DEFAULT_PUBLIC.facebookUrl,
+    whatsappUrl: settings["social.whatsappUrl"] ?? DEFAULT_PUBLIC.whatsappUrl,
     deliveryTime:
       settings["shipping.deliveryTime"] ?? DEFAULT_PUBLIC.deliveryTime,
     returnPolicy:
@@ -215,6 +275,9 @@ export function mapFormToSettings(form: AdminSettingsForm): SettingsMap {
     "general.contactEmail": form.general.contactEmail,
     "general.contactPhone": form.general.contactPhone,
     "general.address": form.general.address,
+    "social.zaloUrl": form.general.zaloUrl.trim(),
+    "social.facebookUrl": form.general.facebookUrl.trim(),
+    "social.whatsappUrl": form.general.whatsappUrl.trim(),
     "email.smtpHost": form.email.smtpHost,
     "email.smtpPort": form.email.smtpPort,
     "email.smtpUser": form.email.smtpUser,
@@ -229,9 +292,11 @@ export function mapFormToSettings(form: AdminSettingsForm): SettingsMap {
     "payment.bankTransferEnabled": String(form.payment.bankTransferEnabled),
     "payment.creditCardEnabled": String(form.payment.creditCardEnabled),
     "payment.paypalEnabled": String(form.payment.paypalEnabled),
+    "payment.atmCardEnabled": String(form.payment.atmCardEnabled),
     "payment.momoEnabled": String(form.payment.momoEnabled),
     "payment.momoPartnerCode": form.payment.momoPartnerCode.trim(),
     "payment.momoStoreId": form.payment.momoStoreId.trim(),
+    "payment.vnpayTmnCode": form.payment.vnpayTmnCode.trim(),
     "payment.bankAccount": form.payment.bankAccount,
     "payment.bankName": form.payment.bankName,
     "notifications.newOrderEmail": String(form.notifications.newOrderEmail),
@@ -246,5 +311,16 @@ export function mapFormToSettings(form: AdminSettingsForm): SettingsMap {
     "abandonedCart.inactiveHours": form.abandonedCart.inactiveHours,
     "tax.vatEnabled": String(form.tax.vatEnabled),
     "tax.vatRate": form.tax.vatRate,
+    "security.allowPublicRegistration": String(
+      form.security.allowPublicRegistration,
+    ),
+    "security.requireStrongPassword": String(
+      form.security.requireStrongPassword,
+    ),
+    "security.minPasswordLength": form.security.minPasswordLength,
+    "security.passwordResetExpiryHours": form.security.passwordResetExpiryHours,
+    "security.blockInactiveUsers": String(form.security.blockInactiveUsers),
+    "security.accessTokenMinutes": form.security.accessTokenMinutes,
+    "security.refreshTokenDays": form.security.refreshTokenDays,
   };
 }

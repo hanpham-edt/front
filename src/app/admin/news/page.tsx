@@ -4,9 +4,14 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Edit, Loader2, Plus, Search, Trash2 } from "lucide-react";
 import AdminPagination from "@/components/admin/AdminPagination";
+import ArticleCoverImage from "@/components/articles/ArticleCoverImage";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { articleService } from "@/services/api/articleService";
-import type { Article } from "@/types/article-types";
+import { articleTopicService } from "@/services/api/articleTopicService";
+import type { Article, ArticleTopic } from "@/types/article-types";
+
+/** Gửi API để lọc bài chưa gán chủ đề */
+const TOPIC_FILTER_NONE = "__none__";
 
 export default function AdminNewsPage() {
   const [articles, setArticles] = useState<Article[]>([]);
@@ -14,6 +19,8 @@ export default function AdminNewsPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedTopicId, setSelectedTopicId] = useState("");
+  const [topics, setTopics] = useState<ArticleTopic[]>([]);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [meta, setMeta] = useState({
@@ -31,6 +38,9 @@ export default function AdminNewsPage() {
         page,
         limit,
         search: debouncedSearch || undefined,
+        ...(selectedTopicId
+          ? { topicId: selectedTopicId }
+          : {}),
       });
       setArticles(res.data);
       setMeta(res.meta);
@@ -42,7 +52,14 @@ export default function AdminNewsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, limit, debouncedSearch]);
+  }, [page, limit, debouncedSearch, selectedTopicId]);
+
+  useEffect(() => {
+    void articleTopicService
+      .getAllAdmin()
+      .then(setTopics)
+      .catch(() => setTopics([]));
+  }, []);
 
   useEffect(() => {
     void load();
@@ -75,28 +92,62 @@ export default function AdminNewsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Tin tức</h1>
           <p className="text-gray-600">Quản lý bài viết trên trang /news</p>
         </div>
-        <Link
-          href="/admin/news/new"
-          className="inline-flex items-center gap-2 rounded-md bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600"
-        >
-          <Plus className="h-4 w-4" />
-          Viết bài mới
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/admin/news/topics"
+            className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Chủ đề tin tức
+          </Link>
+          <Link
+            href="/admin/news/new"
+            className="inline-flex items-center gap-2 rounded-md bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600"
+          >
+            <Plus className="h-4 w-4" />
+            Viết bài mới
+          </Link>
+        </div>
       </div>
 
       <div className="mb-6 rounded-lg bg-white p-6 shadow">
-        <label className="mb-2 block text-sm font-medium text-gray-700">
-          Tìm kiếm
-        </label>
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={handleSearch}
-            className="w-full rounded-md border border-gray-300 py-2 pl-10 pr-3 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
-            placeholder="Tiêu đề, slug..."
-          />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              Tìm kiếm
+            </label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={handleSearch}
+                className="w-full rounded-md border border-gray-300 py-2 pl-10 pr-3 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                placeholder="Tiêu đề, slug, tên chủ đề..."
+              />
+            </div>
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              Chủ đề
+            </label>
+            <select
+              value={selectedTopicId}
+              onChange={(e) => {
+                setSelectedTopicId(e.target.value);
+                setPage(1);
+              }}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              <option value="">Tất cả chủ đề</option>
+              <option value={TOPIC_FILTER_NONE}>Chưa gán chủ đề</option>
+              {topics.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                  {!t.isActive ? " (ẩn)" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -124,7 +175,7 @@ export default function AdminNewsPage() {
           </div>
         ) : articles.length === 0 ? (
           <p className="py-12 text-center text-gray-500">
-            {debouncedSearch
+            {debouncedSearch || selectedTopicId
               ? "Không tìm thấy bài viết phù hợp."
               : "Chưa có bài viết."}
           </p>
@@ -132,8 +183,14 @@ export default function AdminNewsPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="w-24 px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
+                  Ảnh bìa
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                   Tiêu đề
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
+                  Chủ đề
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                   Trạng thái
@@ -150,8 +207,20 @@ export default function AdminNewsPage() {
               {articles.map((a) => (
                 <tr key={a.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
+                    <ArticleCoverImage
+                      src={a.imageUrl}
+                      alt={a.title}
+                      sizes="80px"
+                      className="relative h-14 w-20 overflow-hidden rounded-lg bg-gray-100"
+                      imageClassName="object-cover"
+                    />
+                  </td>
+                  <td className="px-6 py-4">
                     <p className="font-medium text-gray-900">{a.title}</p>
                     <p className="text-xs text-gray-500">/{a.slug}</p>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600">
+                    {a.topic?.name ?? "—"}
                   </td>
                   <td className="px-6 py-4">
                     <span

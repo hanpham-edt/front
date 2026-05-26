@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Search } from "lucide-react";
 import { useProductSearchQuery } from "@/hooks/useProductSearchQuery";
 
@@ -12,6 +13,7 @@ export default function ProductSearchBar({
   className = "",
   inputClassName = "",
 }: ProductSearchBarProps) {
+  const t = useTranslations("products");
   const { inputValue, setSearchInput } = useProductSearchQuery();
 
   return (
@@ -24,8 +26,8 @@ export default function ProductSearchBar({
         value={inputValue}
         onChange={(e) => setSearchInput(e.target.value)}
         className={`block w-full rounded-lg border border-gray-300 bg-white py-2.5 pr-3 pl-10 text-sm leading-5 placeholder-gray-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none ${inputClassName}`}
-        placeholder="Tìm kiếm sản phẩm..."
-        aria-label="Tìm kiếm sản phẩm"
+        placeholder={t("searchPlaceholder")}
+        aria-label={t("searchPlaceholder")}
       />
     </div>
   );

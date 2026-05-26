@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Images, Loader2, Upload } from "lucide-react";
 import MediaPickerModal from "@/components/admin/MediaPickerModal";
@@ -16,6 +16,9 @@ import {
   uploadProductImageFile,
   isStoredImageUrl,
 } from "@/utils/productImageUpload";
+import { resolveStoredImageUrl } from "@/lib/image-url";
+import { articleTopicService } from "@/services/api/articleTopicService";
+import type { ArticleTopic } from "@/types/article-types";
 
 const MIN_CONTENT_LENGTH = 10;
 
@@ -35,6 +38,14 @@ export default function ArticleForm({
   const [uploading, setUploading] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [topics, setTopics] = useState<ArticleTopic[]>([]);
+
+  useEffect(() => {
+    void articleTopicService
+      .getAllAdmin()
+      .then(setTopics)
+      .catch(() => setTopics([]));
+  }, []);
 
   const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -119,6 +130,35 @@ export default function ArticleForm({
       </div>
       <div>
         <label className="mb-1 block text-sm font-medium text-gray-700">
+          Chủ đề
+        </label>
+        <select
+          value={form.topicId ?? ""}
+          onChange={(e) =>
+            setForm((f) => ({
+              ...f,
+              topicId: e.target.value || undefined,
+            }))
+          }
+          className="w-full rounded-md border border-gray-300 px-3 py-2"
+        >
+          <option value="">— Không chọn —</option>
+          {topics.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+              {!t.isActive ? " (ẩn)" : ""}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-gray-500">
+          Chủ đề hiển thị trên menu Tin tức.{" "}
+          <a href="/admin/news/topics" className="text-orange-600 hover:underline">
+            Quản lý chủ đề
+          </a>
+        </p>
+      </div>
+      <div>
+        <label className="mb-1 block text-sm font-medium text-gray-700">
           Slug (tùy chọn)
         </label>
         <input
@@ -157,10 +197,11 @@ export default function ArticleForm({
         {form.imageUrl && isStoredImageUrl(form.imageUrl) ? (
           <div className="relative mb-2 h-40 w-full max-w-md overflow-hidden rounded-lg bg-gray-100">
             <Image
-              src={form.imageUrl}
+              src={resolveStoredImageUrl(form.imageUrl)}
               alt="Bìa"
               fill
               className="object-cover"
+              unoptimized
             />
           </div>
         ) : null}

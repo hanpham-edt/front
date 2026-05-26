@@ -1,5 +1,12 @@
-import { Product, ProductQueryParams, ProductResponse, CreateProduct } from "@/types/product-types";
+import {
+  Product,
+  ProductQueryParams,
+  ProductResponse,
+  CreateProduct,
+  ProductImportResult,
+} from "@/types/product-types";
 import { apiClient } from "./axios-config";
+import { serializeQueryParams } from "@/lib/query-params";
 
 export class ProductService {
   private static readonly ENDPOINT = "/products";
@@ -64,6 +71,41 @@ export class ProductService {
       { quantity, note },
     );
     return response.data;
+  }
+
+  static async exportProductsCsv(
+    params?: Pick<ProductQueryParams, "search" | "category" | "isActive">,
+  ): Promise<Blob> {
+    const { data } = await apiClient.get<Blob>(
+      `${this.ENDPOINT}/admin/export`,
+      {
+        params: serializeQueryParams(params),
+        responseType: "blob",
+      },
+    );
+    return data;
+  }
+
+  static async downloadImportTemplate(): Promise<Blob> {
+    const { data } = await apiClient.get<Blob>(
+      `${this.ENDPOINT}/admin/import-template`,
+      { responseType: "blob" },
+    );
+    return data;
+  }
+
+  static async importFromCsv(
+    csv: string,
+    options?: { skipDuplicates?: boolean },
+  ): Promise<ProductImportResult> {
+    const { data } = await apiClient.post<ProductImportResult>(
+      `${this.ENDPOINT}/admin/import`,
+      {
+        csv,
+        skipDuplicates: options?.skipDuplicates ?? true,
+      },
+    );
+    return data;
   }
 
   static async getStockMovements(

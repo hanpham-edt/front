@@ -1,3 +1,29 @@
+export interface ArticleTopicSummary {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface ArticleTopic {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  articleCount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateArticleTopic {
+  name: string;
+  slug?: string;
+  description?: string;
+  sortOrder?: number;
+  isActive?: boolean;
+}
+
 export interface Article {
   id: string;
   title: string;
@@ -9,6 +35,8 @@ export interface Article {
   metaDescription: string | null;
   isPublished: boolean;
   publishedAt: string | null;
+  topicId: string | null;
+  topic: ArticleTopicSummary | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -23,6 +51,7 @@ export interface CreateArticle {
   metaDescription?: string;
   isPublished?: boolean;
   publishedAt?: string;
+  topicId?: string;
 }
 
 export interface ArticleListResponse {

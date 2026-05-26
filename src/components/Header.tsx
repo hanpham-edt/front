@@ -1,8 +1,9 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import {
   ShoppingCart,
   Menu,
@@ -17,20 +18,14 @@ import { usePublicSettings } from "@/hooks/usePublicSettings";
 import ProfileFormModal from "@/components/account/ProfileFormModal";
 import ChangePasswordModal from "@/components/account/ChangePasswordModal";
 import Modal from "@/components/ui/Modal";
-import LoginForm from "@/app/auth/login/LoginForm";
-import Register from "@/app/auth/register/Register";
+import LoginForm from "@/components/auth/LoginForm";
+import Register from "@/components/auth/Register";
 import ProductSearchBar from "@/components/products/ProductSearchBar";
 import { useCategories } from "@/hooks/useCategory";
+import { useArticleTopics } from "@/hooks/useArticleTopics";
 
 /** Slug danh mục cha "Sản phẩm" trong admin — các danh mục con hiển thị trên menu */
 const PRODUCTS_PARENT_SLUG = "san-pham";
-
-const navigation = [
-  { name: "Trang Chủ", href: "/" },
-  { name: "About", href: "/about" },
-  { name: "Liên Hệ", href: "/contact" },
-  { name: "Tin Tức", href: "/news" },
-];
 
 function SearchBarFallback() {
   return (
@@ -39,9 +34,14 @@ function SearchBarFallback() {
 }
 
 export default function Header() {
+  const t = useTranslations("nav");
+  const tAuth = useTranslations("auth");
+  const tCommon = useTranslations("common");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProductsMenuOpen, setIsProductsMenuOpen] = useState(false);
+  const [isNewsMenuOpen, setIsNewsMenuOpen] = useState(false);
   const [isMobileProductsOpen, setIsMobileProductsOpen] = useState(false);
+  const [isMobileNewsOpen, setIsMobileNewsOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
@@ -51,9 +51,12 @@ export default function Header() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const { siteInfo } = usePublicSettings();
   const { categories: productCategories, getCategories } = useCategories();
+  const { topics: articleTopics, getTopics: getArticleTopics } =
+    useArticleTopics();
   const router = useRouter();
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
   const productsMenuRef = useRef<HTMLDivElement | null>(null);
+  const newsMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     void getCategories({
@@ -61,7 +64,8 @@ export default function Header() {
       isActive: true,
       limit: 50,
     });
-  }, [getCategories]);
+    void getArticleTopics(false);
+  }, [getCategories, getArticleTopics]);
 
   const brandInitial = siteInfo.siteName.charAt(0).toUpperCase() || "Y";
 
@@ -83,8 +87,8 @@ export default function Header() {
   const displayName = useMemo(() => {
     const full = `${user?.lastName ?? ""} ${user?.firstName ?? ""}`.trim();
     if (full) return full;
-    return user?.email ?? "Tài khoản";
-  }, [user]);
+    return user?.email ?? tCommon("account");
+  }, [user, tCommon]);
 
   useEffect(() => {
     if (!isAccountMenuOpen) return;
@@ -95,8 +99,8 @@ export default function Header() {
         setIsAccountMenuOpen(false);
       }
     };
-    window.addEventListener("mousedown", onPointerDown);
-    return () => window.removeEventListener("mousedown", onPointerDown);
+    window.addEventListener("pointerdown", onPointerDown, true);
+    return () => window.removeEventListener("pointerdown", onPointerDown, true);
   }, [isAccountMenuOpen]);
 
   useEffect(() => {
@@ -108,9 +112,22 @@ export default function Header() {
         setIsProductsMenuOpen(false);
       }
     };
-    window.addEventListener("mousedown", onPointerDown);
-    return () => window.removeEventListener("mousedown", onPointerDown);
+    window.addEventListener("pointerdown", onPointerDown, true);
+    return () => window.removeEventListener("pointerdown", onPointerDown, true);
   }, [isProductsMenuOpen]);
+
+  useEffect(() => {
+    if (!isNewsMenuOpen) return;
+    const onPointerDown = (e: MouseEvent) => {
+      const el = newsMenuRef.current;
+      if (!el) return;
+      if (e.target instanceof Node && !el.contains(e.target)) {
+        setIsNewsMenuOpen(false);
+      }
+    };
+    window.addEventListener("pointerdown", onPointerDown, true);
+    return () => window.removeEventListener("pointerdown", onPointerDown, true);
+  }, [isNewsMenuOpen]);
 
   const accountActions = (
     <>
@@ -144,7 +161,7 @@ export default function Header() {
                 className="flex w-full items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-orange-50"
               >
                 <Package className="h-4 w-4 shrink-0 text-orange-600" />
-                Đơn hàng của tôi
+                {t("myOrders")}
               </Link>
               <button
                 type="button"
@@ -155,7 +172,7 @@ export default function Header() {
                 }}
                 className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-orange-50"
               >
-                Cập nhật hồ sơ
+                {t("updateProfile")}
               </button>
               <button
                 type="button"
@@ -166,7 +183,7 @@ export default function Header() {
                 }}
                 className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-orange-50"
               >
-                Đổi mật khẩu
+                {t("changePassword")}
               </button>
               <div className="h-px bg-gray-100" />
               <button
@@ -176,7 +193,7 @@ export default function Header() {
                 disabled={isLoading}
                 className="w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 disabled:opacity-60"
               >
-                {isLoading ? "Đang đăng xuất..." : "Đăng xuất"}
+                {isLoading ? t("loggingOut") : t("logout")}
               </button>
             </div>
           ) : null}
@@ -188,14 +205,14 @@ export default function Header() {
             onClick={handleLoginClick}
             className="cursor-pointer rounded-md bg-orange-500 px-3 py-2 text-sm text-white hover:bg-orange-600"
           >
-            Login
+            {t("login")}
           </button>
           <button
             type="button"
             onClick={handleRegisterClick}
             className="cursor-pointer rounded-md border border-orange-500 px-3 py-2 text-sm text-orange-600 hover:bg-orange-50"
           >
-            Register
+            {t("register")}
           </button>
         </div>
       )}
@@ -203,7 +220,7 @@ export default function Header() {
       <Link
         href="/cart"
         className="relative p-2 text-gray-700 transition-colors hover:text-orange-500"
-        aria-label="Giỏ hàng"
+        aria-label={t("cart")}
       >
         <ShoppingCart className="h-6 w-6" />
         {cartCount > 0 && (
@@ -217,7 +234,7 @@ export default function Header() {
         type="button"
         onClick={() => setIsMenuOpen(!isMenuOpen)}
         className="p-2 text-gray-700 transition-colors hover:text-orange-500 md:hidden"
-        aria-label={isMenuOpen ? "Đóng menu" : "Mở menu"}
+        aria-label={isMenuOpen ? t("closeMenu") : t("openMenu")}
       >
         {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
       </button>
@@ -251,6 +268,7 @@ export default function Header() {
             </div>
 
             <div className="flex items-center justify-end gap-1 sm:gap-2 md:shrink-0">
+              <LanguageSwitcher className="mr-1 hidden sm:flex" />
               {accountActions}
             </div>
           </div>
@@ -265,21 +283,22 @@ export default function Header() {
               href="/"
               className="px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:text-orange-500"
             >
-              Trang Chủ
+              {t("home")}
             </Link>
 
             <div
               ref={productsMenuRef}
-              className="relative group"
+              className="relative"
+              onMouseLeave={() => setIsProductsMenuOpen(false)}
             >
               <button
                 type="button"
                 onClick={() => setIsProductsMenuOpen((v) => !v)}
-                className="flex items-center gap-1 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:text-orange-500"
+                className="flex items-center gap-1 whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:text-orange-500"
                 aria-haspopup="menu"
                 aria-expanded={isProductsMenuOpen}
               >
-                Sản phẩm
+                {t("products")}
                 <ChevronDown className="h-4 w-4" />
               </button>
               {isProductsMenuOpen ? (
@@ -291,9 +310,9 @@ export default function Header() {
                     href="/products"
                     role="menuitem"
                     onClick={() => setIsProductsMenuOpen(false)}
-                    className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600"
+                    className="block whitespace-nowrap px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600"
                   >
-                    Tất cả sản phẩm
+                    {t("allProducts")}
                   </Link>
                   {productCategories.length > 0 ? (
                     <div className="h-px bg-gray-100" />
@@ -304,7 +323,7 @@ export default function Header() {
                       href={`/products?category=${category.id}`}
                       role="menuitem"
                       onClick={() => setIsProductsMenuOpen(false)}
-                      className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600"
+                      className="block whitespace-nowrap px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600"
                     >
                       {category.name}
                     </Link>
@@ -313,15 +332,65 @@ export default function Header() {
               ) : null}
             </div>
 
-            {navigation.slice(1).map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className="px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:text-orange-500"
+        
+
+            <Link
+              href="/about"
+              className="px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:text-orange-500"
+            >
+              {t("about")}
+            </Link>
+            <Link
+              href="/contact"
+              className="px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:text-orange-500"
+            >
+              {t("contact")}
+            </Link>
+                <div
+              ref={newsMenuRef}
+              className="relative"
+              onMouseLeave={() => setIsNewsMenuOpen(false)}
+            >
+              <button
+                type="button"
+                onClick={() => setIsNewsMenuOpen((v) => !v)}
+                className="flex items-center gap-1 whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:text-orange-500"
+                aria-haspopup="menu"
+                aria-expanded={isNewsMenuOpen}
               >
-                {item.name}
-              </Link>
-            ))}
+                {t("knowledge")}
+                <ChevronDown className="h-4 w-4" />
+              </button>
+              {isNewsMenuOpen ? (
+                <div
+                  role="menu"
+                  className="absolute left-0 z-50 mt-0 min-w-[220px] overflow-hidden rounded-lg border border-gray-100 bg-white py-1 shadow-lg"
+                >
+                  <Link
+                    href="/news"
+                    role="menuitem"
+                    onClick={() => setIsNewsMenuOpen(false)}
+                    className="block whitespace-nowrap px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600"
+                  >
+                    {t("allKnowledge")}
+                  </Link>
+                  {articleTopics.length > 0 ? (
+                    <div className="h-px bg-gray-100" />
+                  ) : null}
+                  {articleTopics.map((topic) => (
+                    <Link
+                      key={topic.id}
+                      href={`/news?topic=${topic.slug}`}
+                      role="menuitem"
+                      onClick={() => setIsNewsMenuOpen(false)}
+                      className="block whitespace-nowrap px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600"
+                    >
+                      {topic.name}
+                    </Link>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </nav>
         </div>
       </div>
@@ -337,17 +406,18 @@ export default function Header() {
                   onClick={handleLoginClick}
                   className="flex-1 rounded-md bg-orange-500 py-2 text-sm text-white"
                 >
-                  Login
+                  {t("login")}
                 </button>
                 <button
                   type="button"
                   onClick={handleRegisterClick}
                   className="flex-1 rounded-md border border-orange-500 py-2 text-sm text-orange-600"
                 >
-                  Register
+                  {t("register")}
                 </button>
               </div>
             )}
+            <LanguageSwitcher className="mb-3 px-3 sm:hidden" />
             {isAuthenticated && (
               <Link
                 href="/account/orders"
@@ -355,7 +425,7 @@ export default function Header() {
                 onClick={() => setIsMenuOpen(false)}
               >
                 <Package className="h-5 w-5 text-orange-600" />
-                Đơn hàng của tôi
+                {t("myOrders")}
               </Link>
             )}
             <Link
@@ -363,7 +433,7 @@ export default function Header() {
               className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:text-orange-500"
               onClick={() => setIsMenuOpen(false)}
             >
-              Trang Chủ
+              {t("home")}
             </Link>
 
             <div>
@@ -373,7 +443,7 @@ export default function Header() {
                 className="flex w-full items-center justify-between rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:text-orange-500"
                 aria-expanded={isMobileProductsOpen}
               >
-                Sản phẩm
+                {t("products")}
                 <ChevronDown
                   className={`h-5 w-5 transition-transform ${isMobileProductsOpen ? "rotate-180" : ""}`}
                 />
@@ -388,7 +458,7 @@ export default function Header() {
                       setIsMobileProductsOpen(false);
                     }}
                   >
-                    Tất cả sản phẩm
+                    {t("allProducts")}
                   </Link>
                   {productCategories.map((category) => (
                     <Link
@@ -407,16 +477,61 @@ export default function Header() {
               ) : null}
             </div>
 
-            {navigation.slice(1).map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:text-orange-500"
-                onClick={() => setIsMenuOpen(false)}
+            <div>
+              <button
+                type="button"
+                onClick={() => setIsMobileNewsOpen((v) => !v)}
+                className="flex w-full items-center justify-between rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:text-orange-500"
+                aria-expanded={isMobileNewsOpen}
               >
-                {item.name}
-              </Link>
-            ))}
+                {t("news")}
+                <ChevronDown
+                  className={`h-5 w-5 transition-transform ${isMobileNewsOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+              {isMobileNewsOpen ? (
+                <div className="ml-3 space-y-1 border-l border-gray-200 pl-3">
+                  <Link
+                    href="/news"
+                    className="block rounded-md px-3 py-2 text-sm text-gray-600 hover:text-orange-500"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setIsMobileNewsOpen(false);
+                    }}
+                  >
+                    {t("allNews")}
+                  </Link>
+                  {articleTopics.map((topic) => (
+                    <Link
+                      key={topic.id}
+                      href={`/news?topic=${topic.slug}`}
+                      className="block rounded-md px-3 py-2 text-sm text-gray-600 hover:text-orange-500"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        setIsMobileNewsOpen(false);
+                      }}
+                    >
+                      {topic.name}
+                    </Link>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <Link
+              href="/about"
+              className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:text-orange-500"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              {t("about")}
+            </Link>
+            <Link
+              href="/contact"
+              className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:text-orange-500"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              {t("contact")}
+            </Link>
           </div>
         </div>
       )}
@@ -427,7 +542,7 @@ export default function Header() {
         onClose={() => setIsChangePasswordOpen(false)}
       />
 
-      <Modal open={isLoginOpen} title="Đăng nhập" onClose={() => setIsLoginOpen(false)}>
+      <Modal open={isLoginOpen} title={tAuth("loginTitle")} onClose={() => setIsLoginOpen(false)}>
         <LoginForm
           mode="modal"
           onSuccess={() => setIsLoginOpen(false)}
@@ -444,7 +559,7 @@ export default function Header() {
 
       <Modal
         open={isRegisterOpen}
-        title="Đăng ký"
+        title={tAuth("registerTitle")}
         onClose={() => setIsRegisterOpen(false)}
       >
         <Register
